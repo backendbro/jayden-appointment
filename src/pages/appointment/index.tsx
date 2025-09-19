@@ -17,31 +17,28 @@ export default function AppointmentPage() {
 useEffect(() => {
     let jsPDF: any = null;
     let html2canvas: any = null;
-
     let cleanupFns: Array<() => void> = [];
 
     (async function initClientScript() {
-      // dynamic import so SSR doesn't choke
+      // Dynamic imports
       const jspdfMod = await import("jspdf");
       jsPDF = jspdfMod.jsPDF;
       const html2canvasMod = await import("html2canvas");
       html2canvas = html2canvasMod.default ?? html2canvasMod;
 
-      // --- Helper to select & type cast DOM elements ---
+      // Helper function
       const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
         document.getElementById(id) as T | null;
 
-      // Elements (same ids you used in original script)
+      // DOM Elements
       const progressSteps = Array.from(
         document.querySelectorAll<HTMLElement>(".progress-step")
       );
       const sections = Array.from(document.querySelectorAll<HTMLElement>(".form-section"));
       const progressBar = $("progressBar") as HTMLElement | null;
-
       const serviceTypeSelect = $("serviceTypeSelect") as HTMLSelectElement | null;
       const centerSelect = $("centerSelect") as HTMLSelectElement | null;
       const serviceNextBtn = $("serviceNextBtn") as HTMLButtonElement | null;
-
       const visaTypeWrapper = $("visaTypeWrapper") as HTMLElement | null;
       const visaTypeSelect = $("visaTypeSelect") as HTMLSelectElement | null;
       const calendarMonthLabel = $("calendarMonthLabel") as HTMLElement | null;
@@ -49,7 +46,6 @@ useEffect(() => {
       const timeSlotsContainer = $("timeSlotsContainer") as HTMLElement | null;
       const calPrevBtn = $("calPrevBtn") as HTMLButtonElement | null;
       const calNextBtn = $("calNextBtn") as HTMLButtonElement | null;
-
       const applicantName = $("applicantName") as HTMLInputElement | null;
       const applicantSurname = $("applicantSurname") as HTMLInputElement | null;
       const applicantEmail = $("applicantEmail") as HTMLInputElement | null;
@@ -57,7 +53,6 @@ useEffect(() => {
       const passportFile = $("passportFile") as HTMLInputElement | null;
       const passportPhotoFile = $("passportPhotoFile") as HTMLInputElement | null;
       const applicantNextBtn = $("applicantNextBtn") as HTMLButtonElement | null;
-
       const final_name = $("final_name") as HTMLElement | null;
       const final_email = $("final_email") as HTMLElement | null;
       const final_phone = $("final_phone") as HTMLElement | null;
@@ -70,7 +65,7 @@ useEffect(() => {
       const downloadPdfBtn = $("downloadPdfBtn") as HTMLButtonElement | null;
       const saveToBackendBtn = $("saveToBackendBtn") as HTMLButtonElement | null;
 
-      // local state
+      // Local state
       let currentStep = 0;
       let selectedDate: Date | null = null;
       let selectedTime: string | null = null;
@@ -79,15 +74,15 @@ useEffect(() => {
       let generatedRef: string | null = null;
       let appointmentData: any = {};
 
-      // safety checks for required DOM
+      // Safety checks
       if (!calendarGrid || !timeSlotsContainer) {
-        console.warn("Appointment page: required DOM nodes missing. Make sure your markup has the expected IDs.");
+        console.warn("Appointment page: required DOM nodes missing.");
         return;
       }
 
-      // ---- calendar & times ----
+      // Calendar and time functions
       function renderCalendar(month: number, year: number) {
-        // clear previous day cells (keep header 7 children if you used weekday headers)
+        // Clear previous day cells (keep header 7 children if you used weekday headers)
         while (calendarGrid.children.length > 7) {
           calendarGrid.removeChild(calendarGrid.lastChild as ChildNode);
         }
@@ -160,7 +155,6 @@ useEffect(() => {
         }
       }
 
-      // ---- progress UI ----
       function updateProgressBar() {
         if (progressBar) {
           const progressPercentage = (currentStep / (progressSteps.length - 1)) * 100;
@@ -212,7 +206,6 @@ useEffect(() => {
             lastName: applicantSurname?.value,
             email: applicantEmail?.value,
             phone: applicantPhone?.value,
-            // optional extra fields — keep original ids if present
             program: (document.getElementById("desireProgram") as HTMLInputElement | null)?.value,
             course: (document.getElementById("desireCourse") as HTMLInputElement | null)?.value,
             additionalEmail: (document.getElementById("emailAddress") as HTMLInputElement | null)?.value,
@@ -267,210 +260,333 @@ useEffect(() => {
         console.log("Appointment data collected:", appointmentData);
       }
 
+      // Improved PDF generation
       async function downloadAppointmentSlip() {
-        // populate the appointment-slip DOM like original script expects
-        const pdfTrackingEl = $("pdf_tracking") as HTMLElement | null;
-        if (pdfTrackingEl) pdfTrackingEl.textContent = generatedRef ?? "";
-        const pdfNameEl = $("pdf_name") as HTMLElement | null;
-        if (pdfNameEl) pdfNameEl.textContent = `${applicantName?.value ?? ""} ${applicantSurname?.value ?? ""}`;
-        const pdfEmailEl = $("pdf_email") as HTMLElement | null;
-        if (pdfEmailEl) pdfEmailEl.textContent = applicantEmail?.value ?? "";
-        const pdfPhoneEl = $("pdf_phone") as HTMLElement | null;
-        if (pdfPhoneEl) pdfPhoneEl.textContent = applicantPhone?.value ?? "";
-        const pdfServiceEl = $("pdf_service") as HTMLElement | null;
+        if (!jsPDF) return;
+        
         try {
-          if (serviceTypeSelect && pdfServiceEl) {
-            const serviceData = JSON.parse(serviceTypeSelect.value);
-            pdfServiceEl.textContent = serviceData.name;
-          }
-        } catch {
-          if (serviceTypeSelect && pdfServiceEl) pdfServiceEl.textContent = serviceTypeSelect.options[serviceTypeSelect.selectedIndex].text;
-        }
-        const pdfSlotDate = $("pdf_slot_date") as HTMLElement | null;
-        if (pdfSlotDate) pdfSlotDate.textContent = selectedDate ? selectedDate.toLocaleDateString() : "Not selected";
-        const pdfTimeSlot = $("pdf_time_slot") as HTMLElement | null;
-        if (pdfTimeSlot) pdfTimeSlot.textContent = selectedTime ?? "Not selected";
-        const pdfCenter = $("pdf_center") as HTMLElement | null;
-        if (pdfCenter && centerSelect) pdfCenter.textContent = centerSelect.options[centerSelect.selectedIndex].text;
-
-        const appointmentSlip = $("appointment-slip") as HTMLElement | null;
-        if (!appointmentSlip) {
-          alert("Printable slip not found. Make sure the `#appointment-slip` element exists in the DOM.");
-          return;
-        }
-
-        try {
-          const canvas = await html2canvas(appointmentSlip);
-          const imgData = canvas.toDataURL("image/png");
           const pdf = new jsPDF("p", "mm", "a4");
-          const imgWidth = 210;
-          const imgHeight = (canvas.height * imgWidth) / canvas.width;
-          pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
-          pdf.save(`appointment_slip_${generatedRef ?? "x"}.pdf`);
+          
+          // Add background color
+          pdf.setFillColor(240, 240, 240);
+          pdf.rect(0, 0, 210, 297, 'F');
+          
+          // Add header with logo
+          pdf.setFillColor(59, 130, 246);
+          pdf.rect(0, 0, 210, 40, 'F');
+          
+          pdf.setFontSize(20);
+          pdf.setTextColor(255, 255, 255);
+          pdf.text("Government Services", 105, 20, { align: "center" });
+          
+          pdf.setFontSize(16);
+          pdf.text("Appointment Confirmation", 105, 30, { align: "center" });
+          
+          // Add content
+          pdf.setFontSize(12);
+          pdf.setTextColor(0, 0, 0);
+          
+          // Tracking number
+          pdf.setFont(undefined, 'bold');
+          pdf.text("Tracking #:", 20, 60);
+          pdf.setFont(undefined, 'normal');
+          pdf.text(generatedRef || "", 50, 60);
+          
+          // Add details in a table-like format
+          const details = [
+            ["Name:", `${applicantName?.value || ""} ${applicantSurname?.value || ""}`],
+            ["Email:", applicantEmail?.value || ""],
+            ["Phone:", applicantPhone?.value || ""],
+            ["Service:", final_service?.textContent || ""],
+            ["Appointment Date:", selectedDate ? selectedDate.toLocaleDateString() : "Not selected"],
+            ["Time Slot:", selectedTime || "Not selected"],
+            ["Center:", final_center_address?.textContent || ""]
+          ];
+          
+          let yPosition = 80;
+          details.forEach(([label, value]) => {
+            pdf.setFont(undefined, 'bold');
+            pdf.text(label, 20, yPosition);
+            pdf.setFont(undefined, 'normal');
+            pdf.text(value, 60, yPosition);
+            yPosition += 10;
+          });
+          
+          // Add footer
+          pdf.setFontSize(10);
+          pdf.setTextColor(100, 100, 100);
+          pdf.text("Please bring this slip and required documents to your appointment", 105, 250, { align: "center" });
+          pdf.text("Thank you for using our services", 105, 260, { align: "center" });
+          
+          // Add decorative elements
+          pdf.setDrawColor(59, 130, 246);
+          pdf.setLineWidth(0.5);
+          pdf.line(15, 45, 195, 45);
+          pdf.line(15, 270, 195, 270);
+          
+          // Save the PDF
+          pdf.save(`appointment_slip_${generatedRef || "x"}.pdf`);
         } catch (err) {
           console.error("Error generating PDF", err);
           alert("Error generating PDF. Check console for details.");
         }
       }
 
-      // ---------- Helpers for robust uploading ----------
+      // File validation
       function assertFileIsValid(file: File) {
         if (!(file instanceof File)) throw new Error("Not a File object");
-        if (file.size === 0) throw new Error("File is empty (size === 0)");
-        // optional: enforce a 10 MB size limit to avoid server rejects
+        if (file.size === 0) throw new Error("File is empty");
         const MAX_SIZE = 10 * 1024 * 1024;
         if (file.size > MAX_SIZE) throw new Error("File too large (>10MB)");
       }
 
-      // small convenience to test bucket & permissions quickly in console (uncomment to run)
-      async function testUpload() {
-        const bucketName = "appointments";
-        const testPath = "debug/test_upload.txt";
-        const blob = new Blob(["hello world"], { type: "text/plain" });
-        const { data, error } = await supabase.storage.from(bucketName).upload(testPath, blob, { upsert: true });
-        console.log("test upload result:", { data, error });
-        return { data, error };
-      }
-      // To run the test quickly from dev console: comment back in the call below
-      // await testUpload();
+      // Cloudinary upload helper
+      async function uploadFileToCloudinary(file: File, folder: string) {
+        const CLOUD_NAME = (import.meta.env.VITE_CLOUDINARY_CLOUD_NAME as string) || "";
+        const UPLOAD_PRESET = (import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET as string) || "";
 
-      // inside useEffect — replace previous saveToBackend with this:
-    // Cloudinary upload helper — paste near other helpers inside useEffect
-async function uploadFileToCloudinary(file: File, folder: string) {
-  // read cloud config from env exposed via Vite
-  const CLOUD_NAME = (import.meta.env.VITE_CLOUDINARY_CLOUD_NAME as string) || "";
-  const UPLOAD_PRESET = (import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET as string) || "";
+        if (!CLOUD_NAME || !UPLOAD_PRESET) {
+          throw new Error("Cloudinary not configured.");
+        }
 
-  if (!CLOUD_NAME || !UPLOAD_PRESET) {
-    throw new Error("Cloudinary not configured. Set VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET.");
-  }
+        const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/upload`;
+        const fd = new FormData();
+        fd.append("file", file);
+        fd.append("upload_preset", UPLOAD_PRESET);
+        if (folder) fd.append("folder", folder);
 
-  const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/upload`;
-  const fd = new FormData();
-  fd.append("file", file);
-  fd.append("upload_preset", UPLOAD_PRESET);
-  // optionally group uploads by folder using your generatedRef so files are organized
-  if (folder) fd.append("folder", folder);
-
-  const resp = await fetch(url, { method: "POST", body: fd });
-  if (!resp.ok) {
-    const text = await resp.text();
-    throw new Error(`Cloudinary upload failed: ${resp.status} ${text}`);
-  }
-  const json = await resp.json();
-  // cloudinary returns secure_url (https)
-  if (!json.secure_url) throw new Error("Cloudinary returned no secure_url");
-  return json.secure_url as string;
-}
-
-// New saveToBackend using Cloudinary — replace your previous saveToBackend entirely with this
-async function saveToBackend() {
-  if (!saveToBackendBtn) return;
-  saveToBackendBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
-  saveToBackendBtn.disabled = true;
-
-  try {
-    // 1) ensure we have a tracking number (real uuid)
-    if (!generatedRef) {
-      generatedRef = typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? (crypto as any).randomUUID()
-        : fallbackUUID();
-    }
-
-    // 2) collect latest appointment data
-    appointmentData = collectAppointmentData();
-
-    // 3) prepare files map — get File objects from inputs
-    const fileInputs: Record<string, HTMLInputElement | null> = {
-      passport: passportFile ?? null,
-      photo: passportPhotoFile ?? null,
-      oLevel: document.getElementById("olevelCert") as HTMLInputElement | null,
-      aLevel: document.getElementById("alevelCert") as HTMLInputElement | null,
-      bachelor: document.getElementById("bachelorCert") as HTMLInputElement | null,
-      transcript: document.getElementById("transcriptFile") as HTMLInputElement | null,
-      others: document.getElementById("othersFile") as HTMLInputElement | null,
-    };
-
-    // 4) upload files to Cloudinary
-    const uploadedUrls: Record<string,string> = {};
-    for (const [key, inputEl] of Object.entries(fileInputs)) {
-      const file = inputEl?.files?.[0];
-      if (!file) {
-        console.log(`[upload] no file for key="${key}" — skipping`);
-        continue;
+        const resp = await fetch(url, { method: "POST", body: fd });
+        if (!resp.ok) {
+          const text = await resp.text();
+          throw new Error(`Cloudinary upload failed: ${resp.status} ${text}`);
+        }
+        const json = await resp.json();
+        if (!json.secure_url) throw new Error("Cloudinary returned no secure_url");
+        return json.secure_url as string;
       }
 
-      // validations (same as before)
-      if (!(file instanceof File)) throw new Error(`Upload failed: ${key} is not a File`);
-      if (file.size === 0) throw new Error(`Upload failed: ${key} is empty (0 bytes)`);
-      const MAX_SIZE = 20 * 1024 * 1024; // 20MB limit — adjust as needed
-      if (file.size > MAX_SIZE) throw new Error(`Upload failed: ${file.name} too large (>20MB)`);
-
-      console.log(`[upload] uploading to Cloudinary`, { key, name: file.name, size: file.size, type: file.type });
-
-      // use generatedRef as folder so files are grouped (optional)
-      const folder = generatedRef ?? "appointments-temp";
-      try {
-        const secureUrl = await uploadFileToCloudinary(file, `appointments/${folder}`);
-        uploadedUrls[key] = secureUrl;
-        console.log(`[upload] done ${key}:`, secureUrl);
-      } catch (err: any) {
-        console.error(`[upload] cloudinary failed for ${key}`, err);
-        throw err;
+      // Success notification function
+      function showSuccessNotification() {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = 'success-notification';
+        notification.innerHTML = `
+          <div class="success-icon">
+            <svg viewBox="0 0 100 100">
+              <path class="checkmark" fill="none" stroke="#4CAF50" stroke-width="8" d="M20,50 L40,70 L80,30"/>
+            </svg>
+          </div>
+          <div class="success-content">
+            <h3>Appointment Confirmed!</h3>
+            <p>Your appointment has been successfully scheduled. A confirmation email has been sent.</p>
+          </div>
+          <button class="close-notification">&times;</button>
+        `;
+        
+        // Add styles if not already added
+        if (!document.getElementById('success-notification-styles')) {
+          const styles = document.createElement('style');
+          styles.id = 'success-notification-styles';
+          styles.textContent = `
+            .success-notification {
+              position: fixed;
+              top: 20px;
+              right: 20px;
+              background: white;
+              border-left: 4px solid #4CAF50;
+              border-radius: 4px;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+              padding: 16px;
+              display: flex;
+              align-items: center;
+              z-index: 10000;
+              animation: slideIn 0.5s ease-out;
+              max-width: 400px;
+            }
+            @keyframes slideIn {
+              from { transform: translateX(100%); opacity: 0; }
+              to { transform: translateX(0); opacity: 1; }
+            }
+            .success-icon {
+              width: 40px;
+              height: 40px;
+              margin-right: 16px;
+              flex-shrink: 0;
+            }
+            .checkmark {
+              stroke-dasharray: 100;
+              stroke-dashoffset: 100;
+              animation: drawCheckmark 0.5s ease-in-out 0.5s forwards;
+            }
+            @keyframes drawCheckmark {
+              to { stroke-dashoffset: 0; }
+            }
+            .success-content h3 {
+              margin: 0 0 8px 0;
+              color: #2E7D32;
+            }
+            .success-content p {
+              margin: 0;
+              color: #333;
+            }
+            .close-notification {
+              background: none;
+              border: none;
+              font-size: 20px;
+              cursor: pointer;
+              margin-left: 16px;
+              color: #999;
+            }
+          `;
+          document.head.appendChild(styles);
+        }
+        
+        // Add to page
+        document.body.appendChild(notification);
+        
+        // Add close functionality
+        const closeBtn = notification.querySelector('.close-notification');
+        if (closeBtn) {
+          closeBtn.addEventListener('click', () => {
+            notification.style.animation = 'slideOut 0.5s ease-in forwards';
+            setTimeout(() => {
+              if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+              }
+            }, 500);
+          });
+        }
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.style.animation = 'slideOut 0.5s ease-in forwards';
+            setTimeout(() => {
+              if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+              }
+            }, 500);
+          }
+        }, 5000);
+        
+        // Add slideOut animation if not already defined
+        if (!document.querySelector('style[data-slide-out]')) {
+          const slideOutStyle = document.createElement('style');
+          slideOutStyle.setAttribute('data-slide-out', 'true');
+          slideOutStyle.textContent = `
+            @keyframes slideOut {
+              from { transform: translateX(0); opacity: 1; }
+              to { transform: translateX(100%); opacity: 0; }
+            }
+          `;
+          document.head.appendChild(slideOutStyle);
+        }
       }
-    }
 
-    // 5) Build DB record as before, using uploadedUrls
-    let serviceVal: any = appointmentData.service;
-    try { if (typeof serviceVal === "string") serviceVal = JSON.parse(serviceVal); } catch(e) { /* leave as string */ }
+      // Updated saveToBackend function with Cloudinary and success notification
+      async function saveToBackend() {
+        if (!saveToBackendBtn) return;
+        const originalText = saveToBackendBtn.innerHTML;
+        saveToBackendBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
+        saveToBackendBtn.disabled = true;
 
-    const record = {
-      tracking_number: generatedRef,
-      service: serviceVal,
-      center: appointmentData.center ?? null,
-      visa_type: appointmentData.visaType ?? null,
-      appointment_date: appointmentData.date ? new Date(appointmentData.date).toISOString() : null,
-      appointment_time: appointmentData.time ?? null,
-      applicant: appointmentData.applicant ?? null,
-      addresses: appointmentData.addresses ?? null,
-      documents: uploadedUrls,
-      status: appointmentData.status ?? "Processing",
-      raw_payload: appointmentData
-    };
+        try {
+          // Generate reference if not exists
+          if (!generatedRef) {
+            generatedRef = typeof crypto !== "undefined" && "randomUUID" in crypto
+              ? (crypto as any).randomUUID()
+              : fallbackUUID();
+          }
 
-    // 6) Insert into Supabase table `appointments` WITHOUT requesting the returned row (avoids returning/SELECT)
-    const { data, error: insertError } = await supabase
-      .from("appointments")
-      .insert([record], { returning: "minimal" });
+          // Collect appointment data
+          appointmentData = collectAppointmentData();
 
-    console.log("insert result:", { data, insertError });
-    if (insertError) {
-      console.error("Insert failed (full error):", insertError);
-      throw insertError;
-    }
+          // Prepare files for upload
+          const fileInputs: Record<string, HTMLInputElement | null> = {
+            passport: passportFile ?? null,
+            photo: passportPhotoFile ?? null,
+            oLevel: document.getElementById("olevelCert") as HTMLInputElement | null,
+            aLevel: document.getElementById("alevelCert") as HTMLInputElement | null,
+            bachelor: document.getElementById("bachelorCert") as HTMLInputElement | null,
+            transcript: document.getElementById("transcriptFile") as HTMLInputElement | null,
+            others: document.getElementById("othersFile") as HTMLInputElement | null,
+          };
 
-    // 7) Success — update UI and local state
-    appointmentData = data && data.length ? data[0] : record;
-    if (final_tracking) final_tracking.textContent = generatedRef ?? "";
-    alert("Appointment saved successfully!");
-    console.log("Saved appointment (client-side):", appointmentData);
+          // Upload files to Cloudinary
+          const uploadedUrls: Record<string,string> = {};
+          for (const [key, inputEl] of Object.entries(fileInputs)) {
+            const file = inputEl?.files?.[0];
+            if (!file) {
+              console.log(`[upload] no file for key="${key}" — skipping`);
+              continue;
+            }
 
-  } catch (err: any) {
-    console.error("Save failed", err);
-    const message = err?.message || (err?.error || JSON.stringify(err));
-    alert("Failed to save appointment: " + message);
-  } finally {
-    if (saveToBackendBtn) {
-      saveToBackendBtn.innerHTML = '<i class="fas fa-save mr-2"></i> Save Appointment';
-      saveToBackendBtn.disabled = false;
-    }
-  }
-}
+            assertFileIsValid(file);
+            console.log(`[upload] uploading to Cloudinary`, { key, name: file.name, size: file.size, type: file.type });
 
+            const folder = generatedRef ?? "appointments-temp";
+            try {
+              const secureUrl = await uploadFileToCloudinary(file, `appointments/${folder}`);
+              uploadedUrls[key] = secureUrl;
+              console.log(`[upload] done ${key}:`, secureUrl);
+            } catch (err: any) {
+              console.error(`[upload] cloudinary failed for ${key}`, err);
+              throw err;
+            }
+          }
 
-      // lightweight fallback uuid v4 (if crypto.randomUUID not present)
+          // Build DB record
+          let serviceVal: any = appointmentData.service;
+          try { if (typeof serviceVal === "string") serviceVal = JSON.parse(serviceVal); } catch(e) { /* leave as string */ }
+
+          const record = {
+            tracking_number: generatedRef,
+            service: serviceVal,
+            center: appointmentData.center ?? null,
+            visa_type: appointmentData.visaType ?? null,
+            appointment_date: appointmentData.date ? new Date(appointmentData.date).toISOString() : null,
+            appointment_time: appointmentData.time ?? null,
+            applicant: appointmentData.applicant ?? null,
+            addresses: appointmentData.addresses ?? null,
+            documents: uploadedUrls,
+            status: appointmentData.status ?? "Processing",
+            raw_payload: appointmentData
+          };
+
+          // Insert into Supabase
+          const { data, error: insertError } = await supabase
+            .from("appointments")
+            .insert([record], { returning: "minimal" });
+
+          console.log("insert result:", { data, insertError });
+          if (insertError) {
+            console.error("Insert failed (full error):", insertError);
+            throw insertError;
+          }
+
+          // Update UI and show success notification
+          appointmentData = data && data.length ? data[0] : record;
+          if (final_tracking) final_tracking.textContent = generatedRef ?? "";
+          
+          // Show the enhanced success notification instead of alert
+          showSuccessNotification();
+          
+          console.log("Saved appointment (client-side):", appointmentData);
+
+        } catch (err: any) {
+          console.error("Save failed", err);
+          const message = err?.message || (err?.error || JSON.stringify(err));
+          alert("Failed to save appointment: " + message);
+        } finally {
+          if (saveToBackendBtn) {
+            saveToBackendBtn.innerHTML = originalText;
+            saveToBackendBtn.disabled = false;
+          }
+        }
+      }
+
+      // UUID fallback
       function fallbackUUID() {
-        // RFC4122 v4-ish fallback
         return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
           const r = (Math.random() * 16) | 0;
           const v = c === "x" ? r : (r & 0x3) | 0x8;
@@ -478,7 +594,7 @@ async function saveToBackend() {
         });
       }
 
-      // --- Event bindings (similar to original) ---
+      // Event bindings
       if (serviceTypeSelect) {
         const onChange = () => { updateServiceNextState(); toggleVisaSelector(); };
         serviceTypeSelect.addEventListener("change", onChange);
@@ -496,7 +612,6 @@ async function saveToBackend() {
         serviceNextBtn.addEventListener("click", onClick);
         cleanupFns.push(() => serviceNextBtn.removeEventListener("click", onClick));
       }
-
       if (calPrevBtn) {
         const onClick = () => {
           currentMonth--;
@@ -515,7 +630,6 @@ async function saveToBackend() {
         calNextBtn.addEventListener("click", onClick);
         cleanupFns.push(() => calNextBtn.removeEventListener("click", onClick));
       }
-
       document.querySelectorAll(".next-step").forEach((btn) => {
         const onClick = () => { if (currentStep < sections.length - 1) showStep(currentStep + 1); };
         btn.addEventListener("click", onClick);
@@ -526,10 +640,8 @@ async function saveToBackend() {
         btn.addEventListener("click", onClick);
         cleanupFns.push(() => btn.removeEventListener("click", onClick));
       });
-
       if (applicantNextBtn) {
         const onClick = () => {
-          // basic validation moved from original script
           if (!applicantName?.value?.trim()) { alert("Please enter your first name"); applicantName?.focus(); return; }
           if (!applicantSurname?.value?.trim()) { alert("Please enter your last name"); applicantSurname?.focus(); return; }
           if (!applicantEmail?.value?.includes("@")) { alert("Please enter a valid email"); applicantEmail?.focus(); return; }
@@ -541,37 +653,34 @@ async function saveToBackend() {
         applicantNextBtn.addEventListener("click", onClick);
         cleanupFns.push(() => applicantNextBtn.removeEventListener("click", onClick));
       }
-
       if (downloadPdfBtn) {
         const onClick = downloadAppointmentSlip;
         downloadPdfBtn.addEventListener("click", onClick);
         cleanupFns.push(() => downloadPdfBtn.removeEventListener("click", onClick));
       }
-
       if (saveToBackendBtn) {
         const onClick = saveToBackend;
         saveToBackendBtn.addEventListener("click", onClick);
         cleanupFns.push(() => saveToBackendBtn.removeEventListener("click", onClick));
       }
 
-      // progress / initialisation
+      // Initialize
       function initCalendar() { renderCalendar(currentMonth, currentYear); generateTimeSlots(); }
       function initEventListeners() {
         updateServiceNextState();
         updateProgressBar();
       }
-
       initCalendar();
       initEventListeners();
-    })(); // end async init
+    })();
 
-    // cleanup on unmount
+    // Cleanup
     return () => {
       cleanupFns.forEach((fn) => {
         try { fn(); } catch (e) { /* ignore */ }
       });
     };
-  }, []); //
+  }, []);
   
 
   return (
