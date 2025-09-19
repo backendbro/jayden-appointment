@@ -787,8 +787,8 @@ useEffect(() => {
               >Home</a
             >
            
-            <a
-              href="/appointment"
+            <Link
+              to="/appointment"
               className="vp-cta-appointment"
               id="vpAppointmentCta"
               aria-label="Make an appointment — open booking page"
@@ -798,7 +798,7 @@ useEffect(() => {
               </span>
               <span>Make an Appointment</span>
               <span className="vp-cta-badge" aria-hidden="true">Book</span>
-            </a>
+            </Link>
           </div>
 
           <div className="hidden md:flex items-center">
