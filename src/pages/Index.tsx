@@ -34,7 +34,7 @@ export default function Index() {
                 </svg>
               </button>
 
-              <a href="#" className="flex items-center gap-3">
+              <a href="/" className="flex items-center gap-3">
                 <img
                   src="https://images.unsplash.com/photo-1521791055366-0d553872125f?w=120&q=80&auto=format&fit=crop"
                   className="w-10 h-10 rounded-md object-cover shadow-sm"
@@ -48,7 +48,7 @@ export default function Index() {
 
             <div className="hidden md:flex items-center space-x-8">
               <a
-                href="#"
+                href="/"
                 className="text-sm font-medium hover:text-primary transition"
               >
                 Home

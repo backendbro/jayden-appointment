@@ -18,6 +18,7 @@ useEffect(() => {
     let jsPDF: any = null;
     let html2canvas: any = null;
     let cleanupFns: Array<() => void> = [];
+    let bookedDates: Set<string> = new Set(); // To store booked dates
 
     (async function initClientScript() {
       // Dynamic imports
@@ -80,6 +81,45 @@ useEffect(() => {
         return;
       }
 
+      // Function to fetch booked appointments from Supabase
+      async function fetchBookedAppointments() {
+        try {
+          // Get current date and calculate date range for the next 6 months
+          const now = new Date();
+          const sixMonthsFromNow = new Date();
+          sixMonthsFromNow.setMonth(now.getMonth() + 6);
+          
+          const { data, error } = await supabase
+            .from('appointments')
+            .select('appointment_date, appointment_time, center')
+            .gte('appointment_date', now.toISOString())
+            .lte('appointment_date', sixMonthsFromNow.toISOString())
+            .order('appointment_date', { ascending: true });
+
+          if (error) {
+            console.error('Error fetching appointments:', error);
+            return;
+          }
+
+          // Clear previous booked dates
+          bookedDates.clear();
+          
+          // Store booked dates in a Set for quick lookup
+          if (data) {
+            data.forEach(appointment => {
+              // Convert to YYYY-MM-DD format for consistent comparison
+              const date = new Date(appointment.appointment_date);
+              const dateString = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+              bookedDates.add(dateString);
+            });
+          }
+          
+          console.log('Booked dates loaded:', Array.from(bookedDates));
+        } catch (err) {
+          console.error('Failed to fetch appointments:', err);
+        }
+      }
+
       // Calendar and time functions
       function renderCalendar(month: number, year: number) {
         // Clear previous day cells (keep header 7 children if you used weekday headers)
@@ -109,15 +149,24 @@ useEffect(() => {
           dayCell.textContent = String(i);
 
           const cellDate = new Date(year, month, i);
-          if (cellDate < today && cellDate.toDateString() !== today.toDateString()) {
+          const dateString = `${cellDate.getFullYear()}-${(cellDate.getMonth() + 1).toString().padStart(2, '0')}-${cellDate.getDate().toString().padStart(2, '0')}`;
+          
+          // Check if date is booked
+          if (bookedDates.has(dateString)) {
+            dayCell.classList.add("booked");
             dayCell.classList.add("disabled");
           }
-          if (cellDate.toDateString() === today.toDateString()) {
+          // Check if date is in the past
+          else if (cellDate < today && cellDate.toDateString() !== today.toDateString()) {
+            dayCell.classList.add("disabled");
+          }
+          // Check if date is today
+          else if (cellDate.toDateString() === today.toDateString()) {
             dayCell.classList.add("today");
           }
 
           const onClick = () => {
-            if (!dayCell.classList.contains("disabled")) {
+            if (!dayCell.classList.contains("disabled") && !dayCell.classList.contains("booked")) {
               document.querySelectorAll(".calendar-day").forEach((d) =>
                 d.classList.remove("selected")
               );
@@ -173,13 +222,20 @@ useEffect(() => {
         });
       }
 
-      function showStep(stepIndex: number) {
+      async function showStep(stepIndex: number) {
         sections.forEach((section, index) => {
           if (index === stepIndex) section.classList.add("active");
           else section.classList.remove("active");
         });
         currentStep = stepIndex;
         updateProgressBar();
+        
+        // When moving to step 2 (appointment selection), fetch booked dates
+        if (currentStep === 1) {
+          await fetchBookedAppointments();
+          renderCalendar(currentMonth, currentYear);
+        }
+        
         if (currentStep === 3) populateConfirmation();
       }
 
@@ -670,6 +726,9 @@ useEffect(() => {
         updateServiceNextState();
         updateProgressBar();
       }
+      
+      // Fetch booked appointments on initial load
+      await fetchBookedAppointments();
       initCalendar();
       initEventListeners();
     })();
@@ -709,7 +768,7 @@ useEffect(() => {
               </svg>
             </button>
 
-            <a href="index.html" className="flex items-center gap-3">
+            <a href="/" className="flex items-center gap-3">
               <img
                 src="https://images.unsplash.com/photo-1521791055366-0d553872125f?w=120&q=80&auto=format&fit=crop"
                 className="w-10 h-10 rounded-md object-cover shadow-sm"
@@ -723,23 +782,13 @@ useEffect(() => {
 
           <div className="hidden md:flex items-center space-x-8">
             <a
-              href="#"
+              href="/"
               className="text-sm font-medium hover:text-primary transition"
               >Home</a
             >
+           
             <a
-              href="#services"
-              className="text-sm font-medium hover:text-primary transition"
-              >Services</a
-            >
-            <a
-              href="#about"
-              className="text-sm font-medium hover:text-primary transition"
-              >About</a
-            >
-
-            <a
-              href="appointment.html"
+              href="/appointment"
               className="vp-cta-appointment"
               id="vpAppointmentCta"
               aria-label="Make an appointment — open booking page"

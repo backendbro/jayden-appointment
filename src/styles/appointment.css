@@ -183,6 +183,12 @@ body {
   color: white;
 }
 
+.calendar-day.booked {
+  background-color: #ffebee;
+  color: #f44336;
+  cursor: not-allowed;
+}
+
 /* Time slots */
 .time-slots-container {
   display: grid;
