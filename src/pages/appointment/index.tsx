@@ -2,6 +2,7 @@
 import React from "react";
 import "../../styles/appointment.css";
 import { useEffect } from "react";
+import { Link } from "react-router-dom";
 
 // At top of src/pages/appointment/index.tsx
 import { createClient } from "@supabase/supabase-js";
