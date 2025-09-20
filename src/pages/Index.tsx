@@ -3,7 +3,6 @@ import "../styles/globals.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import { Link } from "react-router-dom";
 
-
 export default function Index() {
   return (
     <>
@@ -67,7 +66,7 @@ export default function Index() {
               </a>
 
               <Link
-  to="/appointment"
+                to="/appointment"
                 className="vp-cta-appointment"
                 id="vpAppointmentCta"
                 aria-label="Make an appointment — open booking page"
