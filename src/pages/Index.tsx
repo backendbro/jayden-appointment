@@ -1,4 +1,4 @@
-// src/pages/Index.jsx  (or wherever your original file lives)
+// src/pages/Index.jsx  (replace your existing file)
 import React, { useEffect, useRef, useState } from "react";
 import ClientScripts from "../components/ClientScripts";
 import "../styles/globals.css";
@@ -6,6 +6,7 @@ import "@fortawesome/fontawesome-free/css/all.min.css";
 import { Link } from "react-router-dom";
 
 export default function Index() {
+  // modal + sidebars + hero slide state
   const [isContactOpen, setContactOpen] = useState(false);
   const [isDesktopSidebarOpen, setDesktopSidebarOpen] = useState(false);
   const [isMobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -15,7 +16,51 @@ export default function Index() {
   const mobileEmailRef = useRef(null);
   const mobileSubscribeRef = useRef(null);
 
-  // set dynamic year
+  // HERO SLIDES (autoplay + manual controls)
+  const slides = [
+    {
+      bg: "https://plus.unsplash.com/premium_photo-1661414779271-d8478e2944bc?w=1600&auto=format&fit=crop&q=80",
+      title: "Premium Visa Services That Move Faster",
+      sub: "White-glove, personalised immigration guidance for executives, families and corporate relocations — handled by senior advisors across multiple jurisdictions.",
+      cta: [
+        { href: "#services", text: "Get Started" },
+        { href: "#contact", text: "Request Consultation", ghost: true },
+      ],
+    },
+    {
+      bg: "https://images.unsplash.com/photo-1653389527286-604ab2dd2471?w=1600&auto=format&fit=crop&q=80&ixlib=rb-4.1.0",
+      title: "Trusted Visa Advisors, Exceptional Outcomes",
+      sub: "Precise documentation, embassy-ready submissions and an industry-leading success rate.",
+      cta: [
+        { href: "#services", text: "Our Services" },
+        { href: "#contact", text: "Contact Us", ghost: true },
+      ],
+    },
+    {
+      bg: "https://www.dif.co/wp-content/uploads/2023/01/shutterstock_1612750594_hi-300x200.jpg",
+      title: "Global Reach, Local Expertise",
+      sub: "Our network of counsel and partners in-country gives you an edge where timing and compliance matter most.",
+      cta: [
+        { href: "#services", text: "Explore Services" },
+        { href: "#pricing", text: "See Pricing", ghost: true },
+      ],
+    },
+  ];
+
+  const [activeSlide, setActiveSlide] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => {
+      setActiveSlide((s) => (s + 1) % slides.length);
+    }, 5000); // autoplay every 5s
+    return () => clearInterval(id);
+  }, []);
+
+  const goToSlide = (i) => setActiveSlide((i + slides.length) % slides.length);
+  const prevSlide = () =>
+    setActiveSlide((s) => (s - 1 + slides.length) % slides.length);
+  const nextSlide = () => setActiveSlide((s) => (s + 1) % slides.length);
+
+  // dynamic year
   useEffect(() => {
     const y = new Date().getFullYear();
     const el = document.getElementById("yr");
@@ -24,12 +69,10 @@ export default function Index() {
     if (el2) el2.textContent = String(y);
   }, []);
 
-  // focus first field, prevent scroll when modal open
+  // focus first field + prevent body scroll when modal open
   useEffect(() => {
     if (isContactOpen) {
-      setTimeout(() => {
-        if (nameRef.current) nameRef.current.focus();
-      }, 50);
+      setTimeout(() => nameRef.current?.focus?.(), 60);
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
@@ -53,16 +96,14 @@ export default function Index() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // small toast helper
+  // toast helper
   function flashToast(msg = "Done") {
     setToastMsg(msg);
     setShowToast(true);
-    setTimeout(() => {
-      setShowToast(false);
-    }, 3000);
+    setTimeout(() => setShowToast(false), 2600);
   }
 
-  // mobile subscribe handler (in sidebar)
+  // mobile subscribe in hamburger
   const handleMobileSubscribe = (e) => {
     e?.preventDefault();
     const email = mobileEmailRef.current?.value?.trim();
@@ -70,14 +111,13 @@ export default function Index() {
       flashToast("Please enter a valid email");
       return;
     }
-    // simulate subscribe success
+    // pretend success
     mobileSubscribeRef.current?.reset?.();
-    setMobileSidebarOpen(false); // close mobile menu after subscribing
+    setMobileSidebarOpen(false);
     flashToast("Subscribed — check your inbox!");
-    // Real implementation: POST to your API here
+    // TODO: call real API
   };
 
-  // contact form submit (simple preventDefault + success toast)
   const handleContactSubmit = (e) => {
     e?.preventDefault();
     flashToast("Message sent — we'll reply soon!");
@@ -279,7 +319,7 @@ export default function Index() {
         </div>
       </aside>
 
-      {/* Mobile Sidebar — now contains subscribe action + inputs */}
+      {/* Mobile Sidebar — now contains subscribe action + inputs (with comfortable padding) */}
       <aside
         id="mobile-sidebar"
         className={
@@ -320,8 +360,8 @@ export default function Index() {
             </a>
           </nav>
 
-          {/* Mobile subscribe module copied into hamburger */}
-          <div className="mt-4 border-t border-gray-100 pt-4">
+          {/* Mobile subscribe module copied into hamburger with extra inner padding */}
+          <div className="mt-4 border-t border-gray-100 pt-4 px-2">
             <h4 className="font-semibold">Join our newsletter</h4>
             <p className="text-sm text-gray-600 mt-2">
               Priority slots, embassy tips and exclusive offers — delivered to
@@ -331,7 +371,7 @@ export default function Index() {
             <form
               ref={mobileSubscribeRef}
               onSubmit={handleMobileSubscribe}
-              className="mt-3 flex flex-col gap-3"
+              className="mt-3 flex flex-col gap-3 px-1"
             >
               <input
                 ref={mobileEmailRef}
@@ -339,9 +379,9 @@ export default function Index() {
                 name="email"
                 placeholder="you@domain.com"
                 required
-                className="vp-field"
+                className="vp-field px-4"
               />
-              <button type="submit" className="vp-primary">
+              <button type="submit" className="vp-primary px-4">
                 Subscribe
               </button>
             </form>
@@ -366,49 +406,96 @@ export default function Index() {
       </aside>
 
       <main className="pt-16">
+        {/* HERO: now dynamically renders slides and supports autoplay + manual controls */}
         <section id="heroSection" className="relative">
-          {/* slides omitted for brevity — keep same structure */}
           <div id="slides" className="absolute inset-0">
-            <div
-              className="hero-slide active"
-              data-bg="https://plus.unsplash.com/premium_photo-1661414779271-d8478e2944bc?w=1600&auto=format&fit=crop&q=80"
-            >
-              <div className="hero-overlay" aria-hidden></div>
-              <div className="h-full flex items-center justify-center px-6">
-                <div className="text-center max-w-3xl">
-                  <h1 className="text-3xl sm:text-4xl md:text-6xl hero-heading text-white font-extrabold">
-                    Premium Visa Services That Move Faster
-                  </h1>
-                  <p className="mt-4 sm:mt-6 text-base sm:text-lg md:text-xl hero-sub text-white max-w-2xl mx-auto">
-                    White-glove, personalised immigration guidance for
-                    executives, families and corporate relocations — handled by
-                    senior advisors across multiple jurisdictions.
-                  </p>
-                  <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row justify-center gap-3">
-                    <a
-                      href="#services"
-                      className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 bg-gradient-to-r from-sky to-primary text-white font-semibold shadow cta-btn w-full sm:w-auto"
+            {slides.map((s, i) => (
+              <div
+                key={i}
+                className={`hero-slide ${
+                  i === activeSlide ? "active hero-visible" : ""
+                }`}
+                style={{
+                  backgroundImage: `url(${s.bg})`,
+                }}
+                role="img"
+                aria-hidden={i === activeSlide ? "false" : "true"}
+              >
+                <div className="hero-overlay" aria-hidden></div>
+                <div className="h-full flex items-center justify-center px-6">
+                  <div className="text-center max-w-3xl">
+                    <h1
+                      className={`hero-heading text-white font-extrabold ${
+                        i === activeSlide ? "hero-visible" : ""
+                      } text-3xl sm:text-4xl md:text-6xl`}
                     >
-                      Get Started
-                    </a>
-                    <a
-                      href="#contact"
-                      className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 border-2 border-white/30 text-white font-medium cta-btn cta-ghost w-full sm:w-auto"
+                      {s.title}
+                    </h1>
+                    <p
+                      className={`mt-4 sm:mt-6 hero-sub text-white max-w-2xl mx-auto ${
+                        i === activeSlide ? "hero-visible" : ""
+                      } text-base sm:text-lg md:text-xl`}
                     >
-                      Request Consultation
-                    </a>
+                      {s.sub}
+                    </p>
+
+                    <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row justify-center gap-3">
+                      {s.cta.map((c, idx) => (
+                        <a
+                          key={idx}
+                          href={c.href}
+                          className={`inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 ${
+                            c.ghost
+                              ? "border-2 border-white/30 text-white font-medium cta-ghost"
+                              : "bg-gradient-to-r from-sky to-primary text-white font-semibold shadow cta-btn"
+                          } w-full sm:w-auto`}
+                        >
+                          {c.text}
+                        </a>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            ))}
+          </div>
+
+          {/* left/right arrows */}
+          <button
+            onClick={prevSlide}
+            className="hero-arrow absolute top-1/2 -translate-y-1/2 arrow-left left-4 md:left-12"
+            aria-label="previous slide"
+          >
+            <i className="fas fa-chevron-left"></i>
+          </button>
+          <button
+            onClick={nextSlide}
+            className="hero-arrow absolute top-1/2 -translate-y-1/2 arrow-right right-4 md:right-12"
+            aria-label="next slide"
+          >
+            <i className="fas fa-chevron-right"></i>
+          </button>
+
+          {/* indicators */}
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2">
+            {slides.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => goToSlide(i)}
+                aria-label={`Go to slide ${i + 1}`}
+                className={`w-2.5 h-2.5 rounded-full ${
+                  i === activeSlide ? "bg-white" : "bg-white/40"
+                }`}
+              />
+            ))}
           </div>
         </section>
 
-        {/* Intruding cards and about section unchanged (we previously made them responsive) */}
+        {/* Intruding cards — small bottom margin on mobile to breathe (mb-4 on mobile) */}
         <div className="relative intrude-wrapper px-4 -mt-6">
           <div className="max-w-6xl mx-auto">
             <div className="flex flex-col md:flex-row items-stretch justify-center gap-6 intrude-card">
-              <div className="card glass p-6 card-hover flex flex-col justify-between bg-white w-full md:w-1/3 max-w-sm mx-auto">
+              <div className="card glass p-6 card-hover flex flex-col justify-between bg-white w-full md:w-1/3 max-w-sm mx-auto mb-4 md:mb-0">
                 <div>
                   <div className="flex items-start gap-3">
                     <div className="w-12 h-12 rounded-lg bg-white/90 flex items-center justify-center text-2xl">
@@ -429,7 +516,7 @@ export default function Index() {
                 </div>
               </div>
 
-              <div className="card glass bg-white p-6 card-hover flex flex-col justify-between w-full md:w-1/3 max-w-sm mx-auto">
+              <div className="card glass bg-white p-6 card-hover flex flex-col justify-between w-full md:w-1/3 max-w-sm mx-auto mb-4 md:mb-0">
                 <div>
                   <div className="flex items-start gap-3">
                     <div className="w-12 h-12 rounded-lg bg-white/90 flex items-center justify-center text-2xl">
@@ -450,7 +537,7 @@ export default function Index() {
                 </div>
               </div>
 
-              <div className="card glass bg-white p-6 card-hover flex flex-col justify-between w-full md:w-1/3 max-w-sm mx-auto">
+              <div className="card glass bg-white p-6 card-hover flex flex-col justify-between w-full md:w-1/3 max-w-sm mx-auto mb-4 md:mb-0">
                 <div>
                   <div className="flex items-start gap-3">
                     <div className="w-12 h-12 rounded-lg bg-white/90 flex items-center justify-center text-2xl">
@@ -475,7 +562,10 @@ export default function Index() {
           </div>
         </div>
 
-        <section id="about" className="max-w-6xl mx-auto px-6 py-24">
+        {/* ABOUT / Trusted Experience — reduce bottom spacing and make sure only once */}
+        <section id="about" className="max-w-6xl mx-auto px-6 py-12">
+          {" "}
+          {/* py reduced from 24 to 12 */}
           <div className="stats-wrap bg-white rounded-3xl p-6 md:p-8 shadow-md grid grid-cols-1 md:grid-cols-3 items-center gap-6">
             <div className="animate-f-left">
               <h3 className="text-2xl font-extrabold">
@@ -509,6 +599,7 @@ export default function Index() {
           </div>
         </section>
 
+        {/* rest of the page unchanged */}
         <section id="about" className="max-w-6xl mx-auto px-6 py-24">
           <div className="stats-wrap bg-white rounded-3xl p-8 shadow-md grid md:grid-cols-3 items-center gap-6">
             <div className="animate-f-left">
@@ -1017,7 +1108,7 @@ export default function Index() {
         </div>
       </div>
 
-      {/* Contact modal (now responsive; uses vp-open class for CSS) */}
+      {/* Contact modal — improved responsiveness + icon padding */}
       <div
         id="vpContactModal"
         className={`vp-modal ${isContactOpen ? "vp-open" : "vp-hidden"}`}
@@ -1056,6 +1147,7 @@ export default function Index() {
                 marginBottom: 8,
               }}
             >
+              {/* ICON: added subtle padding so it doesn't hug the side */}
               <div
                 style={{
                   width: "44px",
@@ -1066,10 +1158,13 @@ export default function Index() {
                   placeItems: "center",
                   color: "white",
                   fontSize: "18px",
+                  padding: "6px" /* <-- new padding */,
+                  boxSizing: "border-box",
                 }}
               >
                 <i className="fas fa-headset"></i>
               </div>
+
               <div style={{ flex: "1" }}>
                 <h3 id="vpContactTitle">Let's get you help — fast</h3>
                 <p className="small">

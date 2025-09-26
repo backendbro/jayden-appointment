@@ -946,3 +946,118 @@ body {
 }
 
 /* End of appended responsive fixes */
+
+/* ----------------------
+  Small final polish & overflow guards (append to end of globals.css)
+  ---------------------- */
+
+/* Give modal inner body some padding and ensure panel handles overflow gracefully */
+.vp-panel {
+  max-height: calc(100vh - 96px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.vp-panel .vp-panel-body {
+  overflow: auto;
+  padding: 18px;
+  max-height: calc(100vh - 160px);
+}
+
+/* Ensure headset icon doesn't get clipped visually if panel is narrow */
+.vp-panel .vp-panel-body > div > div:first-child {
+  box-sizing: border-box;
+}
+
+/* Make mobile hamburger subscribe inputs and button breathe */
+#mobile-sidebar {
+  -webkit-overflow-scrolling: touch;
+}
+#mobile-sidebar .vp-field {
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+#mobile-sidebar .vp-primary {
+  padding: 12px 14px;
+  border-radius: 10px;
+}
+
+/* Add a small bottom margin for intrude cards on small screens already handled inline via classes,
+   but provide CSS fallback */
+.intrude-card .card {
+  margin-bottom: 0.6rem;
+}
+@media (min-width: 768px) {
+  .intrude-card .card {
+    margin-bottom: 0;
+  }
+}
+
+/* Trusted section: remove accidental large bottom space */
+#about {
+  padding-top: 3rem;
+  padding-bottom: 3rem;
+} /* py-12 equivalent */
+.stats-wrap {
+  margin-bottom: 0;
+}
+
+/* Hero controls responsive positioning */
+@media (max-width: 480px) {
+  .hero-arrow {
+    left: 8px !important;
+    right: 8px !important;
+    padding: 8px;
+  }
+  .hero-arrow i {
+    font-size: 0.85rem;
+  }
+}
+
+/* Defensive overflow fixes:
+   blobs sometimes stick out on tiny screens causing slight horizontal scroll; nudge them */
+@media (max-width: 640px) {
+  .blob-a {
+    right: -3vw;
+  }
+  .blob-b {
+    left: -3vw;
+  }
+  .intrude-wrapper {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  #slides,
+  .hero-slide {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+}
+
+/* Make sure images and background-filled elements never force overflow */
+img,
+.hero-slide,
+.news-item img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Small guard to ensure no horizontal scroll due to shadows or transforms */
+html,
+body {
+  overflow-x: hidden;
+}
+
+/* Keep the vp-fab label pointer events clickable except on very small phones where we hide it */
+.vp-fab-label {
+  pointer-events: auto;
+  cursor: pointer;
+}
+@media (max-width: 420px) {
+  .vp-fab-label {
+    display: none;
+  }
+}
+
+/* End of appended polish */
