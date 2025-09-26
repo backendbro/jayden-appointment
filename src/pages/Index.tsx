@@ -600,39 +600,6 @@ export default function Index() {
         </section>
 
         {/* rest of the page unchanged */}
-        <section id="about" className="max-w-6xl mx-auto px-6 py-24">
-          <div className="stats-wrap bg-white rounded-3xl p-8 shadow-md grid md:grid-cols-3 items-center gap-6">
-            <div className="animate-f-left">
-              <h3 className="text-2xl font-extrabold">
-                Trusted Experience, Measured Results
-              </h3>
-              <p className="mt-3 text-gray-600">
-                We combine legal expertise, process engineering and a
-                client-first approach to deliver predictable outcomes.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-center -mt-20 md:mt-0 animate-f-m">
-              <div className="flex flex-col items-center">
-                <div className="badge-circle">
-                  <span className="badge-number">24</span>
-                </div>
-                <div className="badge-sub">YEARS OF EXPERIENCE</div>
-              </div>
-            </div>
-
-            <div className="text-right md:text-right animate-f-right">
-              <div className="text-5xl font-extrabold">920</div>
-              <div className="text-sm font-semibold tracking-wide text-dark/80 mt-1">
-                INVESTMENT PROFESSIONALS
-              </div>
-              <p className="mt-3 text-gray-600 max-w-sm ml-auto">
-                Our employees are the energy that drives us forward. Their
-                commitment, expertise and diversity are the key to DIF’ success.
-              </p>
-            </div>
-          </div>
-        </section>
 
         <section className="testimonials-section">
           <div className="testimonials-wrap">
