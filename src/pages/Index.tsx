@@ -1,4 +1,4 @@
-// src/pages/Index.jsx  (replace your existing file)
+// src/pages/Index.jsx
 import React, { useEffect, useRef, useState } from "react";
 import ClientScripts from "../components/ClientScripts";
 import "../styles/globals.css";
@@ -15,6 +15,11 @@ export default function Index() {
   const nameRef = useRef(null);
   const mobileEmailRef = useRef(null);
   const mobileSubscribeRef = useRef(null);
+
+  // Testimonial refs
+  const testimTrackRef = useRef(null);
+  const testimViewportRef = useRef(null);
+  const [testimIndex, setTestimIndex] = useState(0);
 
   // HERO SLIDES (autoplay + manual controls)
   const slides = [
@@ -128,6 +133,131 @@ export default function Index() {
   const closeContact = () => setContactOpen(false);
   const toggleMobileSidebar = () => setMobileSidebarOpen((s) => !s);
   const toggleDesktopSidebar = () => setDesktopSidebarOpen((s) => !s);
+
+  /**
+   * Testimonial scroller setup:
+   * - makes .testim-track horizontally scrollable (overflow-x: auto)
+   * - adds scroll-snap behaviour so each card centers nicely
+   * - wires Prev/Next buttons to scroll to nearest card
+   * - wires dots to navigate to a card
+   * - updates active dot on scroll
+   */
+  useEffect(() => {
+    const trackEl = document.getElementById("testimTrack");
+    const viewportEl = document.getElementById("testimViewport");
+    const dotsContainer = document.getElementById("testimDots");
+    const prevBtn = document.getElementById("testimPrev");
+    const nextBtn = document.getElementById("testimNext");
+
+    if (!trackEl || !viewportEl) return;
+
+    // Ensure track is a horizontally scrollable container (override styles safely)
+    trackEl.style.display = "flex";
+    trackEl.style.overflowX = "auto";
+    trackEl.style.scrollSnapType = "x mandatory";
+    trackEl.style.scrollBehavior = "smooth";
+    trackEl.style.WebkitOverflowScrolling = "touch";
+    trackEl.style.gap = "18px"; // match CSS gap
+
+    // Grab cards, set snapping and flex behavior
+    const cards = Array.from(trackEl.querySelectorAll(".testim-card"));
+    if (cards.length === 0) return;
+
+    cards.forEach((card) => {
+      // prevent shrinking and ensure snapping; sizing is handled by CSS breakpoints
+      card.style.flex = "0 0 auto";
+      card.style.scrollSnapAlign = "center";
+      // remove any inline width so CSS percentage-based rules can take effect
+      card.style.minWidth = "";
+      card.style.width = "";
+    });
+
+    // Build dots (clear existing and create matching dots)
+    if (dotsContainer) {
+      dotsContainer.innerHTML = "";
+      cards.forEach((c, i) => {
+        const btn = document.createElement("button");
+        btn.className = "testim-dot" + (i === 0 ? " active" : "");
+        btn.setAttribute("aria-label", `Go to testimonial ${i + 1}`);
+        btn.addEventListener("click", () => {
+          // center the card in the viewport
+          const left = c.offsetLeft - (trackEl.clientWidth - c.clientWidth) / 2;
+          trackEl.scrollTo({ left, behavior: "smooth" });
+        });
+        dotsContainer.appendChild(btn);
+      });
+    }
+
+    // Helper to find nearest card index to center
+    const findNearestIndex = () => {
+      const center = trackEl.scrollLeft + trackEl.clientWidth / 2;
+      let nearestIdx = 0;
+      let nearestDist = Infinity;
+      cards.forEach((c, i) => {
+        const cCenter = c.offsetLeft + c.clientWidth / 2;
+        const d = Math.abs(cCenter - center);
+        if (d < nearestDist) {
+          nearestDist = d;
+          nearestIdx = i;
+        }
+      });
+      return nearestIdx;
+    };
+
+    // Scroll handler (throttled with rAF)
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const idx = findNearestIndex();
+        setTestimIndex(idx);
+        // update dots
+        if (dotsContainer) {
+          Array.from(dotsContainer.children).forEach((btn, i) => {
+            btn.classList.toggle("active", i === idx);
+          });
+        }
+      });
+    };
+    trackEl.addEventListener("scroll", onScroll, { passive: true });
+
+    // Wheel handler: convert vertical wheel to horizontal scroll for smoother navigation
+    const onWheel = (e) => {
+      // If user scrolls mostly vertically inside the testimonial area, convert to horizontal movement
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        trackEl.scrollLeft += e.deltaY;
+        e.preventDefault();
+      }
+    };
+    trackEl.addEventListener("wheel", onWheel, { passive: false });
+
+    // Prev/Next button handlers
+    const scrollToIndex = (i) => {
+      const idx = Math.max(0, Math.min(cards.length - 1, i));
+      const c = cards[idx];
+      if (!c) return;
+      const left = c.offsetLeft - (trackEl.clientWidth - c.clientWidth) / 2;
+      trackEl.scrollTo({ left, behavior: "smooth" });
+    };
+    const prevHandler = () => scrollToIndex(findNearestIndex() - 1);
+    const nextHandler = () => scrollToIndex(findNearestIndex() + 1);
+    prevBtn?.addEventListener("click", prevHandler);
+    nextBtn?.addEventListener("click", nextHandler);
+
+    // Make sure first card is centered on mount
+    setTimeout(() => {
+      scrollToIndex(0);
+    }, 50);
+
+    // cleanup
+    return () => {
+      trackEl.removeEventListener("scroll", onScroll);
+      trackEl.removeEventListener("wheel", onWheel);
+      prevBtn?.removeEventListener("click", prevHandler);
+      nextBtn?.removeEventListener("click", nextHandler);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
 
   return (
     <>
@@ -564,8 +694,6 @@ export default function Index() {
 
         {/* ABOUT / Trusted Experience — reduce bottom spacing and make sure only once */}
         <section id="about" className="max-w-6xl mx-auto px-6 py-12">
-          {" "}
-          {/* py reduced from 24 to 12 */}
           <div className="stats-wrap bg-white rounded-3xl p-6 md:p-8 shadow-md grid grid-cols-1 md:grid-cols-3 items-center gap-6">
             <div className="animate-f-left">
               <h3 className="text-2xl font-extrabold">
@@ -599,8 +727,7 @@ export default function Index() {
           </div>
         </section>
 
-        {/* rest of the page unchanged */}
-
+        {/* Testimonials (now scrollable & controlled) */}
         <section className="testimonials-section">
           <div className="testimonials-wrap">
             <div className="testim-hero px-4">
@@ -618,10 +745,18 @@ export default function Index() {
               </div>
             </div>
 
-            <div className="testim-viewport px-4" id="testimViewport">
+            <div
+              className="testim-viewport px-4"
+              id="testimViewport"
+              ref={testimViewportRef}
+            >
               <div className="holo-shimmer" aria-hidden></div>
 
-              <div className="testim-track" id="testimTrack">
+              <div
+                className="testim-track"
+                id="testimTrack"
+                ref={testimTrackRef}
+              >
                 <article className="testim-card" data-index="0">
                   <div className="testim-quote">
                     “They unlocked priority slots, handled every embassy
@@ -754,8 +889,8 @@ export default function Index() {
               >
                 <defs>
                   <linearGradient id="g1" x1="0" x2="1">
-                    <stop offset="0" stop-color="#38bdf8" stop-opacity="0.12" />
-                    <stop offset="1" stop-color="#dc143c" stop-opacity="0.12" />
+                    <stop offset="0" stopColor="#38bdf8" stopOpacity="0.12" />
+                    <stop offset="1" stopColor="#dc143c" stopOpacity="0.12" />
                   </linearGradient>
                 </defs>
                 <rect x="0" y="0" width="100" height="10" fill="url(#g1)" />
@@ -763,6 +898,8 @@ export default function Index() {
             </div>
           </div>
         </section>
+
+        {/* rest of the page unchanged (news, services, etc.) */}
 
         <section className="py-16">
           <div className="max-w-7xl mx-auto px-6">
@@ -1048,6 +1185,8 @@ export default function Index() {
             </p>
           </div>
         </footer>
+
+        {/* ...remaining sections unchanged */}
       </main>
 
       {/* Floating contact FAB */}
@@ -1114,7 +1253,6 @@ export default function Index() {
                 marginBottom: 8,
               }}
             >
-              {/* ICON: added subtle padding so it doesn't hug the side */}
               <div
                 style={{
                   width: "44px",
@@ -1125,7 +1263,7 @@ export default function Index() {
                   placeItems: "center",
                   color: "white",
                   fontSize: "18px",
-                  padding: "6px" /* <-- new padding */,
+                  padding: "6px",
                   boxSizing: "border-box",
                 }}
               >

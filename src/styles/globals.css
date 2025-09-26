@@ -69,7 +69,7 @@ body {
   pointer-events: none;
 }
 
-/* HERO text fade-in (main request) */
+/* HERO text fade-in */
 .hero-heading,
 .hero-sub {
   opacity: 0;
@@ -135,8 +135,8 @@ body {
 }
 
 /* ------------------------
-          About / Stats — updated badge & number styles
-          ------------------------ */
+   About / Stats — updated badge & number styles
+   ------------------------ */
 
 .stats-wrap {
   background: linear-gradient(
@@ -157,12 +157,11 @@ body {
   place-items: center;
   background: linear-gradient(180deg, #0b1220 0%, #082a3a 60%);
   box-shadow: 0 26px 70px rgba(2, 6, 23, 0.16);
-  border: 6px solid rgba(212, 175, 55, 0.12); /* subtle gold rim */
+  border: 6px solid rgba(212, 175, 55, 0.12);
   overflow: hidden;
 }
 
 .badge-circle::after {
-  /* soft glossy highlight */
   content: "";
   position: absolute;
   left: -30%;
@@ -179,7 +178,6 @@ body {
   pointer-events: none;
 }
 
-/* BIG, bolder 24 with gradient fill and slight inset stroke */
 .badge-number {
   font-weight: 900;
   font-size: 6.4rem;
@@ -195,12 +193,11 @@ body {
   -webkit-background-clip: text;
   background-clip: text;
   text-shadow: 0 8px 30px rgba(2, 6, 23, 0.28);
-  -webkit-text-stroke: 1.5px rgba(0, 0, 0, 0.06); /* subtle edge */
+  -webkit-text-stroke: 1.5px rgba(0, 0, 0, 0.06);
   transform: translateY(-6px);
   display: inline-block;
 }
 
-/* small sublabel under the badge */
 .badge-sub {
   margin-top: 8px;
   font-weight: 700;
@@ -284,8 +281,12 @@ body {
 }
 
 /* ------------------------
-          Testimonial carousel styles
-          ------------------------ */
+   Testimonial carousel styles (CLEANED + fixes)
+   Key changes:
+   - track is horizontally scrollable with scroll-snap
+   - card flex-basis uses percentages so multiple cards fit per viewport
+   - removed transform-only transition that conflicted with scrolling
+   ------------------------ */
 
 .testimonials-section {
   position: relative;
@@ -329,16 +330,24 @@ body {
   padding: 6px 0;
   position: relative;
 }
+
+/* TRACK: now scrollable, snap-based and touch-friendly */
 .testim-track {
   display: flex;
   gap: 18px;
-  transition: transform 520ms cubic-bezier(0.2, 0.9, 0.2, 1);
-  will-change: transform;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  align-items: stretch;
+  /* Remove transform transition to avoid interfering with native scrolling */
+  transition: none;
+  will-change: scroll-position;
 }
 
+/* CARD: use flex-basis percentages so several cards fit the viewport
+   Desktop ~3 per view, tablet ~2, mobile ~1 (same visual behaviour as before) */
 .testim-card {
-  min-width: 86%;
-  flex: 0 0 86%;
   background: linear-gradient(
     180deg,
     rgba(255, 255, 255, 0.98),
@@ -352,12 +361,18 @@ body {
   overflow: hidden;
   transform-origin: center;
   transition: transform 320ms cubic-bezier(0.2, 0.9, 0.2, 1), box-shadow 320ms;
+  scroll-snap-align: center;
+  flex: 0 0 86%;
+  min-width: 86%;
 }
+
+/* Hover effect retained */
 .testim-card:hover {
   transform: translateY(-10px) scale(1.01);
   box-shadow: 0 34px 90px rgba(2, 6, 23, 0.12);
 }
 
+/* content inside cards stays the same */
 .testim-quote {
   font-size: 1.05rem;
   line-height: 1.55;
@@ -437,24 +452,36 @@ body {
   box-shadow: 0 8px 26px rgba(2, 6, 23, 0.08);
 }
 
+/* responsive card widths (percentage-based so multiple fit) */
 @media (min-width: 1024px) {
   .testim-card {
-    min-width: 34%;
-    flex: 0 0 34%;
+    flex: 0 0 calc(33.333% - 12px);
+    min-width: calc(33.333% - 12px);
   }
 }
 @media (min-width: 768px) and (max-width: 1023px) {
   .testim-card {
-    min-width: 46%;
-    flex: 0 0 46%;
+    flex: 0 0 calc(50% - 9px);
+    min-width: calc(50% - 9px);
   }
 }
 @media (max-width: 767px) {
   .testim-card {
-    min-width: 86%;
     flex: 0 0 86%;
+    min-width: 86%;
   }
 }
+
+/* make track scrollbar subtle */
+.testim-track::-webkit-scrollbar {
+  height: 8px;
+}
+.testim-track::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.12);
+  border-radius: 999px;
+}
+
+/* End of testimonials fix */
 
 /* decorative floating blobs */
 .float-blob {
@@ -507,7 +534,7 @@ body {
   position: fixed;
   bottom: 1.5rem;
   right: 1.5rem;
-  z-index: 1200; /* above nav (nav is z-index:60 in your CSS) */
+  z-index: 1200;
   width: 68px;
   height: 68px;
   border-radius: 9999px;
@@ -525,7 +552,6 @@ body {
   box-shadow: 0 0 0 6px rgba(56, 189, 248, 0.1);
 }
 
-/* subtle pulse layer (separate element so it doesn't break layout) */
 .vp-fab .vp-pulse {
   position: absolute;
   inset: -8px;
@@ -561,7 +587,8 @@ body {
   font-size: 12px;
   color: #475569;
   z-index: 1199;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 /* modal backdrop + panel */
@@ -570,9 +597,9 @@ body {
   inset: 0;
   z-index: 1400;
   display: flex;
-  align-items: flex-end; /* mobile slide-up */
+  align-items: flex-end;
   justify-content: center;
-  pointer-events: none; /* disabled until open */
+  pointer-events: none;
 }
 .vp-modal.vp-open {
   pointer-events: auto;
@@ -606,8 +633,10 @@ body {
     opacity 260ms linear;
   pointer-events: auto;
   overflow: hidden;
+  max-height: calc(100vh - 96px);
+  display: flex;
+  flex-direction: column;
 }
-/* desktop center override */
 @media (min-width: 900px) {
   .vp-modal {
     align-items: center;
@@ -617,16 +646,15 @@ body {
     border-radius: 20px;
   }
 }
-
-/* open state */
 .vp-modal.vp-open .vp-panel {
   transform: translateY(0) scale(1);
   opacity: 1;
 }
 
-/* panel internals */
 .vp-panel .vp-panel-body {
   padding: 18px;
+  overflow: auto;
+  max-height: calc(100vh - 160px);
 }
 .vp-panel h3 {
   font-size: 1.05rem;
@@ -640,7 +668,7 @@ body {
   font-size: 0.92rem;
 }
 
-/* form controls (namespaced so they don't collide with tailwind classes) */
+/* form controls (namespaced) */
 .vp-field,
 .vp-select,
 .vp-textarea {
@@ -754,8 +782,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
   will-change: transform;
 }
-
-/* subtle moving gradient shimmer (keeps perf-friendly) */
 .vp-cta-appointment::before {
   content: "";
   position: absolute;
@@ -770,8 +796,6 @@ body {
   mix-blend-mode: overlay;
   pointer-events: none;
 }
-
-/* hover / focus */
 .vp-cta-appointment:hover,
 .vp-cta-appointment:focus {
   transform: translateY(-4px) scale(1.02);
@@ -785,7 +809,6 @@ body {
   box-shadow: 0 0 0 6px rgba(56, 189, 248, 0.1);
 }
 
-/* small icon container */
 .vp-cta-appointment .vp-cta-icon {
   display: inline-grid;
   place-items: center;
@@ -795,8 +818,6 @@ body {
   background: rgba(255, 255, 255, 0.12);
   font-size: 0.9rem;
 }
-
-/* optional "priority" pill */
 .vp-cta-badge {
   display: inline-block;
   margin-left: 6px;
@@ -843,23 +864,9 @@ body {
 
 /* ---------------------
    Responsive fixes: intruding cards, stats, and contact FAB
-   Append this to the end of src/styles/globals.css
    --------------------- */
 
-/* Defensive modal pointer-events: ensure modal is interactive when not explicitly hidden */
-.vp-modal {
-  pointer-events: none;
-}
-.vp-modal.vp-open,
-.vp-modal:not(.vp-hidden) {
-  pointer-events: auto;
-}
-
 /* Make the FAB label clickable on most screens, but hide on very small phones */
-.vp-fab-label {
-  pointer-events: auto;
-  cursor: pointer;
-}
 @media (max-width: 420px) {
   .vp-fab-label {
     display: none;
@@ -870,15 +877,14 @@ body {
 @media (max-width: 1024px) {
   .intrude-wrapper {
     transform: translateY(-22%);
-  } /* gentler on tablets */
+  }
 }
 @media (max-width: 768px) {
   .intrude-wrapper {
-    transform: translateY(-10%); /* was -40% — much gentler on phones */
+    transform: translateY(-10%);
     padding-bottom: 1.25rem;
   }
 
-  /* force vertical stacking and responsive card sizing */
   .intrude-card {
     flex-direction: column;
     align-items: stretch;
@@ -892,7 +898,6 @@ body {
     padding: 0.7rem;
   }
 
-  /* ensure hero CTAs / text don't get squashed by intrude wrapper */
   #heroSection .hero-heading {
     font-size: 1.6rem;
   }
@@ -900,7 +905,6 @@ body {
     font-size: 0.95rem;
   }
 
-  /* Trusted stats: stack and center on mobile */
   .stats-wrap {
     grid-template-columns: 1fr !important;
     text-align: center;
@@ -918,7 +922,6 @@ body {
   .stats-wrap .text-right {
     text-align: center !important;
   }
-  /* defensive rule to neutralize any negative top margins on small screens */
   .stats-wrap .-mt-20 {
     margin-top: 0 !important;
   }
@@ -932,7 +935,6 @@ body {
   .intrude-card .card {
     padding: 0.85rem;
   }
-  /* slightly smaller hero heading so text never overflows */
   #heroSection .hero-heading {
     font-size: 1.45rem;
     line-height: 1.15;
@@ -945,29 +947,7 @@ body {
   box-sizing: border-box;
 }
 
-/* End of appended responsive fixes */
-
-/* ----------------------
-  Small final polish & overflow guards (append to end of globals.css)
-  ---------------------- */
-
-/* Give modal inner body some padding and ensure panel handles overflow gracefully */
-.vp-panel {
-  max-height: calc(100vh - 96px);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-.vp-panel .vp-panel-body {
-  overflow: auto;
-  padding: 18px;
-  max-height: calc(100vh - 160px);
-}
-
-/* Ensure headset icon doesn't get clipped visually if panel is narrow */
-.vp-panel .vp-panel-body > div > div:first-child {
-  box-sizing: border-box;
-}
+/* Small final polish & overflow guards (append to end of src/styles/globals.css) */
 
 /* Make mobile hamburger subscribe inputs and button breathe */
 #mobile-sidebar {
@@ -983,8 +963,7 @@ body {
   border-radius: 10px;
 }
 
-/* Add a small bottom margin for intrude cards on small screens already handled inline via classes,
-   but provide CSS fallback */
+/* Add a small bottom margin for intrude cards on small screens */
 .intrude-card .card {
   margin-bottom: 0.6rem;
 }
@@ -998,7 +977,7 @@ body {
 #about {
   padding-top: 3rem;
   padding-bottom: 3rem;
-} /* py-12 equivalent */
+}
 .stats-wrap {
   margin-bottom: 0;
 }
@@ -1049,26 +1028,13 @@ body {
   overflow-x: hidden;
 }
 
-/* Keep the vp-fab label pointer events clickable except on very small phones where we hide it */
-.vp-fab-label {
-  pointer-events: auto;
-  cursor: pointer;
-}
-@media (max-width: 420px) {
-  .vp-fab-label {
-    display: none;
-  }
-}
-
-/* End of appended polish */
 /* Hide hero prev/next arrows on small screens; enlarge dots for touch */
 @media (max-width: 640px) {
   .hero-arrow {
     display: none !important;
     pointer-events: none !important;
   }
-
-  /* make slide dots easier to hit on phones */
+  /* larger touchable dots */
   #heroSection .absolute.bottom-8 > button {
     width: 10px;
     height: 10px;
@@ -1076,9 +1042,193 @@ body {
     min-height: 10px;
     border-radius: 9999px;
   }
-
-  /* give a little bottom spacing so arrows removal doesn't crowd the hero on small screens */
   #heroSection {
     padding-bottom: 1.25rem;
   }
+}
+
+/* ---------- Testimonials (responsive: 4 / 3 / 2 / 1) ---------- */
+.testimonials-section {
+  position: relative;
+  padding: 3.5rem 0;
+}
+.testimonials-wrap {
+  max-width: 1100px;
+  margin: 0 auto;
+  position: relative;
+  padding: 0 1rem;
+}
+.testim-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.testim-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+.testim-sub {
+  color: #6b7280;
+}
+.rating-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ffd64d, #ffb86b);
+  font-weight: 700;
+  color: #082a3a;
+  font-size: 0.9rem;
+  box-shadow: 0 12px 36px rgba(212, 175, 55, 0.08);
+}
+
+.testim-viewport {
+  overflow: hidden;
+  padding: 6px 0;
+  position: relative;
+}
+
+/* track: horizontal scroll + snap + touch friendly */
+.testim-track {
+  display: flex;
+  gap: 18px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  align-items: stretch;
+  transition: none; /* avoid transform transition interfering with scroll */
+  will-change: scroll-position;
+}
+
+/* card base style */
+.testim-card {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.98),
+    rgba(248, 251, 255, 0.98)
+  );
+  border-radius: 16px;
+  padding: 1.25rem;
+  border: 1px solid rgba(15, 23, 42, 0.04);
+  box-shadow: 0 20px 50px rgba(2, 6, 23, 0.06);
+  position: relative;
+  overflow: hidden;
+  transform-origin: center;
+  transition: transform 320ms cubic-bezier(0.2, 0.9, 0.2, 1), box-shadow 320ms;
+  scroll-snap-align: center;
+  flex: 0 0 86%;
+  min-width: 86%;
+}
+
+/* Hover */
+.testim-card:hover {
+  transform: translateY(-10px) scale(1.01);
+  box-shadow: 0 34px 90px rgba(2, 6, 23, 0.12);
+}
+
+/* card content */
+.testim-quote {
+  font-size: 1.05rem;
+  line-height: 1.55;
+  color: #0f172a;
+  font-weight: 600;
+}
+.testim-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.9rem;
+}
+.testim-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 9999px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 8px 22px rgba(2, 6, 23, 0.08);
+}
+.testim-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.testim-name {
+  font-weight: 700;
+}
+.testim-role {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.testim-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 14px;
+  justify-content: center;
+}
+.testim-btn {
+  background: #fff;
+  border-radius: 9999px;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.06);
+  cursor: pointer;
+}
+.testim-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  background: rgba(15, 23, 42, 0.12);
+  cursor: pointer;
+}
+.testim-dot.active {
+  background: linear-gradient(90deg, #38bdf8, #dc143c);
+  box-shadow: 0 8px 26px rgba(2, 6, 23, 0.08);
+}
+
+/* Desktop: 4 per view */
+@media (min-width: 1280px) {
+  .testim-card {
+    flex: 0 0 calc(25% - 13.5px);
+    min-width: calc(25% - 13.5px);
+  }
+}
+
+/* Large tablets / small desktops: 3 per view */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .testim-card {
+    flex: 0 0 calc(33.333% - 12px);
+    min-width: calc(33.333% - 12px);
+  }
+}
+
+/* Tablets: 2 per view */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .testim-card {
+    flex: 0 0 calc(50% - 9px);
+    min-width: calc(50% - 9px);
+  }
+}
+
+/* Mobile: single centered card */
+@media (max-width: 767px) {
+  .testim-card {
+    flex: 0 0 86%;
+    min-width: 86%;
+  }
+}
+
+/* subtle track scrollbar */
+.testim-track::-webkit-scrollbar {
+  height: 8px;
+}
+.testim-track::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.12);
+  border-radius: 999px;
 }
