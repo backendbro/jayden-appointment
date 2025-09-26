@@ -143,44 +143,54 @@ export default function Index() {
    * - updates active dot on scroll
    */
   useEffect(() => {
-    const trackEl = document.getElementById("testimTrack");
-    const viewportEl = document.getElementById("testimViewport");
-    const dotsContainer = document.getElementById("testimDots");
-    const prevBtn = document.getElementById("testimPrev");
-    const nextBtn = document.getElementById("testimNext");
+    const trackEl = document.getElementById(
+      "testimTrack"
+    ) as HTMLElement | null;
+    const viewportEl = document.getElementById(
+      "testimViewport"
+    ) as HTMLElement | null;
+    const dotsContainer = document.getElementById(
+      "testimDots"
+    ) as HTMLElement | null;
+    const prevBtn = document.getElementById(
+      "testimPrev"
+    ) as HTMLButtonElement | null;
+    const nextBtn = document.getElementById(
+      "testimNext"
+    ) as HTMLButtonElement | null;
 
     if (!trackEl || !viewportEl) return;
 
-    // Ensure track is a horizontally scrollable container (override styles safely)
+    // ensure track is scrollable and configured (non-destructive)
     trackEl.style.display = "flex";
     trackEl.style.overflowX = "auto";
-    trackEl.style.scrollSnapType = "x mandatory";
+    (trackEl.style as any).scrollSnapType = "x mandatory";
     trackEl.style.scrollBehavior = "smooth";
-    trackEl.style.WebkitOverflowScrolling = "touch";
-    trackEl.style.gap = "18px"; // match CSS gap
+    trackEl.style.setProperty("-webkit-overflow-scrolling", "touch");
+    trackEl.style.gap = "18px";
 
-    // Grab cards, set snapping and flex behavior
-    const cards = Array.from(trackEl.querySelectorAll(".testim-card"));
-    if (cards.length === 0) return;
+    const cardNodes = Array.from(
+      trackEl.querySelectorAll<HTMLElement>(".testim-card")
+    );
+    if (cardNodes.length === 0) return;
 
-    cards.forEach((card) => {
-      // prevent shrinking and ensure snapping; sizing is handled by CSS breakpoints
-      card.style.flex = "0 0 auto";
+    // Make sure cards use CSS widths (don't override). Still set snap align and prevent shrinking.
+    cardNodes.forEach((card) => {
+      card.style.flex = "0 0 auto"; // leave width to CSS breakpoints
       card.style.scrollSnapAlign = "center";
-      // remove any inline width so CSS percentage-based rules can take effect
+      // clear any inline width that may have been set previously
       card.style.minWidth = "";
       card.style.width = "";
     });
 
-    // Build dots (clear existing and create matching dots)
+    // Build dots
     if (dotsContainer) {
       dotsContainer.innerHTML = "";
-      cards.forEach((c, i) => {
+      cardNodes.forEach((c, i) => {
         const btn = document.createElement("button");
         btn.className = "testim-dot" + (i === 0 ? " active" : "");
         btn.setAttribute("aria-label", `Go to testimonial ${i + 1}`);
         btn.addEventListener("click", () => {
-          // center the card in the viewport
           const left = c.offsetLeft - (trackEl.clientWidth - c.clientWidth) / 2;
           trackEl.scrollTo({ left, behavior: "smooth" });
         });
@@ -188,12 +198,12 @@ export default function Index() {
       });
     }
 
-    // Helper to find nearest card index to center
+    // find nearest centered index
     const findNearestIndex = () => {
       const center = trackEl.scrollLeft + trackEl.clientWidth / 2;
       let nearestIdx = 0;
       let nearestDist = Infinity;
-      cards.forEach((c, i) => {
+      cardNodes.forEach((c, i) => {
         const cCenter = c.offsetLeft + c.clientWidth / 2;
         const d = Math.abs(cCenter - center);
         if (d < nearestDist) {
@@ -204,14 +214,13 @@ export default function Index() {
       return nearestIdx;
     };
 
-    // Scroll handler (throttled with rAF)
+    // scroll handler
     let raf = 0;
     const onScroll = () => {
       if (raf) cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
         const idx = findNearestIndex();
         setTestimIndex(idx);
-        // update dots
         if (dotsContainer) {
           Array.from(dotsContainer.children).forEach((btn, i) => {
             btn.classList.toggle("active", i === idx);
@@ -221,9 +230,8 @@ export default function Index() {
     };
     trackEl.addEventListener("scroll", onScroll, { passive: true });
 
-    // Wheel handler: convert vertical wheel to horizontal scroll for smoother navigation
-    const onWheel = (e) => {
-      // If user scrolls mostly vertically inside the testimonial area, convert to horizontal movement
+    // wheel handler (convert vertical to horizontal)
+    const onWheel = (e: WheelEvent) => {
       if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
         trackEl.scrollLeft += e.deltaY;
         e.preventDefault();
@@ -231,10 +239,10 @@ export default function Index() {
     };
     trackEl.addEventListener("wheel", onWheel, { passive: false });
 
-    // Prev/Next button handlers
-    const scrollToIndex = (i) => {
-      const idx = Math.max(0, Math.min(cards.length - 1, i));
-      const c = cards[idx];
+    // prev / next
+    const scrollToIndex = (i: number) => {
+      const idx = Math.max(0, Math.min(cardNodes.length - 1, i));
+      const c = cardNodes[idx];
       if (!c) return;
       const left = c.offsetLeft - (trackEl.clientWidth - c.clientWidth) / 2;
       trackEl.scrollTo({ left, behavior: "smooth" });
@@ -244,10 +252,8 @@ export default function Index() {
     prevBtn?.addEventListener("click", prevHandler);
     nextBtn?.addEventListener("click", nextHandler);
 
-    // Make sure first card is centered on mount
-    setTimeout(() => {
-      scrollToIndex(0);
-    }, 50);
+    // center first card on mount
+    setTimeout(() => scrollToIndex(0), 50);
 
     // cleanup
     return () => {
@@ -809,8 +815,7 @@ export default function Index() {
                 <article className="testim-card" data-index="2">
                   <div className="testim-quote">
                     “A complex family relocation with sensitive documents —
-                    handled with speed, transparency and empathy. The kids
-                    landed school placements smoothly.”
+                    handled with speed, transparency and empathy.”
                   </div>
 
                   <div className="testim-meta">
