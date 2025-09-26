@@ -840,3 +840,109 @@ body {
     height: 28px;
   }
 }
+
+/* ---------------------
+   Responsive fixes: intruding cards, stats, and contact FAB
+   Append this to the end of src/styles/globals.css
+   --------------------- */
+
+/* Defensive modal pointer-events: ensure modal is interactive when not explicitly hidden */
+.vp-modal {
+  pointer-events: none;
+}
+.vp-modal.vp-open,
+.vp-modal:not(.vp-hidden) {
+  pointer-events: auto;
+}
+
+/* Make the FAB label clickable on most screens, but hide on very small phones */
+.vp-fab-label {
+  pointer-events: auto;
+  cursor: pointer;
+}
+@media (max-width: 420px) {
+  .vp-fab-label {
+    display: none;
+  }
+}
+
+/* Reduce how far intruding cards intrude on small screens and make them stack */
+@media (max-width: 1024px) {
+  .intrude-wrapper {
+    transform: translateY(-22%);
+  } /* gentler on tablets */
+}
+@media (max-width: 768px) {
+  .intrude-wrapper {
+    transform: translateY(-10%); /* was -40% — much gentler on phones */
+    padding-bottom: 1.25rem;
+  }
+
+  /* force vertical stacking and responsive card sizing */
+  .intrude-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  .intrude-card .card {
+    width: 100% !important;
+    max-width: 520px;
+    height: auto !important;
+    margin-inline: auto;
+    padding: 1rem;
+  }
+
+  /* ensure hero CTAs / text don't get squashed by intrude wrapper */
+  #heroSection .hero-heading {
+    font-size: 1.6rem;
+  }
+  #heroSection .hero-sub {
+    font-size: 0.95rem;
+  }
+
+  /* Trusted stats: stack and center on mobile */
+  .stats-wrap {
+    grid-template-columns: 1fr !important;
+    text-align: center;
+    padding: 1rem !important;
+  }
+  .stats-wrap .badge-circle {
+    margin: 0 auto;
+    width: 120px;
+    height: 120px;
+  }
+  .stats-wrap .badge-number {
+    font-size: 3.2rem;
+    letter-spacing: -2px;
+  }
+  .stats-wrap .text-right {
+    text-align: center !important;
+  }
+  /* defensive rule to neutralize any negative top margins on small screens */
+  .stats-wrap .-mt-20 {
+    margin-top: 0 !important;
+  }
+}
+
+/* very small phones: extra guard */
+@media (max-width: 420px) {
+  .intrude-wrapper {
+    transform: translateY(-6%);
+  }
+  .intrude-card .card {
+    padding: 0.85rem;
+  }
+  /* slightly smaller hero heading so text never overflows */
+  #heroSection .hero-heading {
+    font-size: 1.45rem;
+    line-height: 1.15;
+  }
+}
+
+/* Optional defensive rule: avoid huge fixed widths on intrude-card items */
+.intrude-card .card {
+  max-width: 28rem;
+  box-sizing: border-box;
+}
+
+/* End of appended responsive fixes */
