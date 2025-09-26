@@ -1061,3 +1061,24 @@ body {
 }
 
 /* End of appended polish */
+/* Hide hero prev/next arrows on small screens; enlarge dots for touch */
+@media (max-width: 640px) {
+  .hero-arrow {
+    display: none !important;
+    pointer-events: none !important;
+  }
+
+  /* make slide dots easier to hit on phones */
+  #heroSection .absolute.bottom-8 > button {
+    width: 10px;
+    height: 10px;
+    min-width: 10px;
+    min-height: 10px;
+    border-radius: 9999px;
+  }
+
+  /* give a little bottom spacing so arrows removal doesn't crowd the hero on small screens */
+  #heroSection {
+    padding-bottom: 1.25rem;
+  }
+}
