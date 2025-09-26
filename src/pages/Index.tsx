@@ -938,7 +938,7 @@ export default function Index() {
 
                 <article className="news-item bg-white rounded-2xl shadow-md overflow-hidden">
                   <img
-                    src="https://images.unsplash.com/photo-1508385082359-f6b3f2ab1b83?w=1200&q=80&auto=format&fit=crop"
+                    src="https://panasiuk.com.pl/wp-content/uploads/2021/08/Relocation.jpg"
                     alt="relocation"
                     className="w-full h-44 object-cover"
                   />
