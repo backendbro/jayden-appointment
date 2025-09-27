@@ -299,9 +299,10 @@ export default function Index() {
                 <img
                   src="https://images.unsplash.com/photo-1521791055366-0d553872125f?w=120&q=80&auto=format&fit=crop"
                   className="w-10 h-10 rounded-md object-cover shadow-sm"
-                  alt="logo"
+                  alt="VisaPremium logo"
+                  loading="lazy"
                 />
-                <span className="bg-red hidden md:inline-block text-lg font-semibold">
+                <span className="hidden md:inline-block text-lg font-semibold">
                   VisaPremiums
                 </span>
               </a>
@@ -382,14 +383,7 @@ export default function Index() {
           <div>
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h3
-                  className="text-3xl font-extrabold"
-                  style={{
-                    background: "linear-gradient(90deg, #38bdf8, #dc143c)",
-                    WebkitBackgroundClip: "text",
-                    color: "transparent",
-                  }}
-                >
+                <h3 className="text-3xl font-extrabold gradient-text">
                   Hello Friends
                 </h3>
                 <p className="text-sm text-gray-500 mt-2">
@@ -423,7 +417,7 @@ export default function Index() {
               />
               <button
                 type="submit"
-                className="w-full rounded-lg px-4 py-3 bg-gradient-to-r from-sky to-primary text-white font-semibold shadow cta-btn"
+                className="w-full rounded-lg px-4 py-3 cta-btn"
               >
                 Subscribe & Get Priority
               </button>
@@ -436,13 +430,21 @@ export default function Index() {
             <div className="mt-8">
               <h4 className="font-semibold mb-3">Follow us</h4>
               <div className="flex gap-4 text-gray-600">
-                <a href="#" className="hover:text-primary">
+                <a
+                  href="#"
+                  className="hover:text-primary"
+                  aria-label="Facebook"
+                >
                   <i className="fab fa-facebook-f"></i>
                 </a>
-                <a href="#" className="hover:text-primary">
+                <a href="#" className="hover:text-primary" aria-label="Twitter">
                   <i className="fab fa-twitter"></i>
                 </a>
-                <a href="#" className="hover:text-primary">
+                <a
+                  href="#"
+                  className="hover:text-primary"
+                  aria-label="LinkedIn"
+                >
                   <i className="fab fa-linkedin-in"></i>
                 </a>
               </div>
@@ -488,12 +490,12 @@ export default function Index() {
             <a href="#about" className="py-2 font-medium hover:text-primary">
               About
             </a>
-            <a
-              href="appointment.html"
+            <Link
+              to="/appointment"
               className="py-2 font-medium hover:text-primary"
             >
               Appointment
-            </a>
+            </Link>
           </nav>
 
           {/* Mobile subscribe module copied into hamburger with extra inner padding */}
@@ -527,13 +529,13 @@ export default function Index() {
             </div>
 
             <div className="mt-4 flex gap-3">
-              <a href="#" className="hover:text-primary">
+              <a href="#" className="hover:text-primary" aria-label="Facebook">
                 <i className="fab fa-facebook-f"></i>
               </a>
-              <a href="#" className="hover:text-primary">
+              <a href="#" className="hover:text-primary" aria-label="Twitter">
                 <i className="fab fa-twitter"></i>
               </a>
-              <a href="#" className="hover:text-primary">
+              <a href="#" className="hover:text-primary" aria-label="LinkedIn">
                 <i className="fab fa-linkedin-in"></i>
               </a>
             </div>
@@ -581,9 +583,7 @@ export default function Index() {
                           key={idx}
                           href={c.href}
                           className={`inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 ${
-                            c.ghost
-                              ? "border-2 border-white/30 text-white font-medium cta-ghost"
-                              : "bg-gradient-to-r from-sky to-primary text-white font-semibold shadow cta-btn"
+                            c.ghost ? "cta-ghost" : "cta-btn"
                           } w-full sm:w-auto`}
                         >
                           {c.text}
@@ -627,11 +627,11 @@ export default function Index() {
           </div>
         </section>
 
-        {/* Intruding cards — small bottom margin on mobile to breathe (mb-4 on mobile) */}
+        {/* Intruding cards — replaced with grid so 3 remain side-by-side on md+ */}
         <div className="relative intrude-wrapper px-4 -mt-6">
           <div className="max-w-6xl mx-auto">
-            <div className="flex flex-col md:flex-row items-stretch justify-center gap-6 intrude-card">
-              <div className="card glass p-6 card-hover flex flex-col justify-between bg-white w-full md:w-1/3 max-w-sm mx-auto mb-4 md:mb-0">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 intrude-card">
+              <div className="card glass p-6 card-hover flex flex-col justify-between bg-white w-full min-h-[220px]">
                 <div>
                   <div className="flex items-start gap-3">
                     <div className="w-12 h-12 rounded-lg bg-white/90 flex items-center justify-center text-2xl">
@@ -652,7 +652,7 @@ export default function Index() {
                 </div>
               </div>
 
-              <div className="card glass bg-white p-6 card-hover flex flex-col justify-between w-full md:w-1/3 max-w-sm mx-auto mb-4 md:mb-0">
+              <div className="card glass bg-white p-6 card-hover flex flex-col justify-between w-full min-h-[220px]">
                 <div>
                   <div className="flex items-start gap-3">
                     <div className="w-12 h-12 rounded-lg bg-white/90 flex items-center justify-center text-2xl">
@@ -673,7 +673,7 @@ export default function Index() {
                 </div>
               </div>
 
-              <div className="card glass bg-white p-6 card-hover flex flex-col justify-between w-full md:w-1/3 max-w-sm mx-auto mb-4 md:mb-0">
+              <div className="card glass bg-white p-6 card-hover flex flex-col justify-between w-full min-h-[220px]">
                 <div>
                   <div className="flex items-start gap-3">
                     <div className="w-12 h-12 rounded-lg bg-white/90 flex items-center justify-center text-2xl">
@@ -774,7 +774,8 @@ export default function Index() {
                     <div className="testim-avatar">
                       <img
                         src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&q=60&auto=format&fit=crop"
-                        alt="avatar 1"
+                        alt="L. Morgan"
+                        loading="lazy"
                       />
                     </div>
                     <div>
@@ -799,7 +800,8 @@ export default function Index() {
                     <div className="testim-avatar">
                       <img
                         src="https://images.unsplash.com/photo-1545996124-68aeef80d5d7?w=200&q=60&auto=format&fit=crop"
-                        alt="avatar 2"
+                        alt="R. Kapoor"
+                        loading="lazy"
                       />
                     </div>
                     <div>
@@ -822,7 +824,8 @@ export default function Index() {
                     <div className="testim-avatar">
                       <img
                         src="https://images.unsplash.com/photo-1547425260-76bcadfb4f2c?w=200&q=60&auto=format&fit=crop"
-                        alt="avatar 3"
+                        alt="A. Daniels"
+                        loading="lazy"
                       />
                     </div>
                     <div>
@@ -846,7 +849,8 @@ export default function Index() {
                     <div className="testim-avatar">
                       <img
                         src="https://images.unsplash.com/photo-1548142813-8af8f1a8f1d7?w=200&q=60&auto=format&fit=crop"
-                        alt="avatar 4"
+                        alt="C. Reyes"
+                        loading="lazy"
                       />
                     </div>
                     <div>
@@ -922,6 +926,7 @@ export default function Index() {
                     src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=1200&q=80&auto=format&fit=crop"
                     alt="fast track"
                     className="w-full h-44 object-cover"
+                    loading="lazy"
                   />
                   <div className="p-6">
                     <span className="text-sm text-primary">June 15, 2023</span>
@@ -946,6 +951,7 @@ export default function Index() {
                     src="https://panasiuk.com.pl/wp-content/uploads/2021/08/Relocation.jpg"
                     alt="relocation"
                     className="w-full h-44 object-cover"
+                    loading="lazy"
                   />
                   <div className="p-6">
                     <span className="text-sm text-primary">June 8, 2023</span>
@@ -970,6 +976,7 @@ export default function Index() {
                     src="https://images.unsplash.com/photo-1556761175-4b46a572b786?w=1200&q=80&auto=format&fit=crop"
                     alt="mistakes"
                     className="w-full h-44 object-cover"
+                    loading="lazy"
                   />
                   <div className="p-6">
                     <span className="text-sm text-primary">May 30, 2023</span>
@@ -994,6 +1001,7 @@ export default function Index() {
                     src="https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=1200&q=80&auto=format&fit=crop"
                     alt="consulate"
                     className="w-full h-44 object-cover"
+                    loading="lazy"
                   />
                   <div className="p-6">
                     <span className="text-sm text-primary">May 22, 2023</span>
@@ -1085,7 +1093,7 @@ export default function Index() {
             <div className="text-center mt-10">
               <a
                 href="#"
-                className="vp-contact-trigger inline-block rounded-full px-6 py-3 bg-gradient-to-r from-sky to-primary text-white font-semibold shadow cta-btn"
+                className="vp-contact-trigger inline-block rounded-full px-6 py-3 cta-btn cta-w"
               >
                 Request a Consultation
               </a>
@@ -1113,7 +1121,7 @@ export default function Index() {
                 placeholder="you@domain.com"
                 className="w-full sm:w-auto flex-1 max-w-md rounded-lg px-4 py-3 border focus:outline-none focus:ring-2 focus:ring-sky"
               />
-              <button className="rounded-lg px-6 py-3 bg-gradient-to-r from-sky to-primary text-white font-semibold shadow cta-btn">
+              <button className="rounded-lg px-6 py-3 cta-btn cta-w">
                 Subscribe
               </button>
             </form>
@@ -1250,28 +1258,8 @@ export default function Index() {
           </button>
 
           <div className="vp-panel-body">
-            <div
-              style={{
-                display: "flex",
-                gap: "12px",
-                alignItems: "flex-start",
-                marginBottom: 8,
-              }}
-            >
-              <div
-                style={{
-                  width: "44px",
-                  height: "44px",
-                  borderRadius: "8px",
-                  background: "linear-gradient(90deg, #38bdf8, #dc143c)",
-                  display: "grid",
-                  placeItems: "center",
-                  color: "white",
-                  fontSize: "18px",
-                  padding: "6px",
-                  boxSizing: "border-box",
-                }}
-              >
+            <div className="flex gap-3 items-start mb-2">
+              <div className="vp-icon">
                 <i className="fas fa-headset"></i>
               </div>
 

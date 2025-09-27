@@ -1,10 +1,7 @@
 // src/pages/appointment/index.tsx
-import React from "react";
+import React, { useEffect } from "react";
 import "../../styles/appointment.css";
-import { useEffect } from "react";
 import { Link } from "react-router-dom";
-
-// At top of src/pages/appointment/index.tsx
 import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -12,25 +9,28 @@ const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-export default function AppointmentPage() {
+export default function AppointmentPage(): JSX.Element {
   useEffect(() => {
     let jsPDF: any = null;
     let html2canvas: any = null;
-    let cleanupFns: Array<() => void> = [];
-    let bookedDates: Set<string> = new Set(); // To store booked dates
+    const cleanupFns: Array<() => void> = [];
+    const bookedDates: Set<string> = new Set();
 
     (async function initClientScript() {
-      // Dynamic imports
-      const jspdfMod = await import("jspdf");
-      jsPDF = jspdfMod.jsPDF;
-      const html2canvasMod = await import("html2canvas");
-      html2canvas = html2canvasMod.default ?? html2canvasMod;
+      // optional libs for PDF flows
+      try {
+        const jspdfMod = await import("jspdf");
+        jsPDF = jspdfMod.jsPDF;
+        const html2canvasMod = await import("html2canvas");
+        html2canvas = html2canvasMod.default ?? html2canvasMod;
+      } catch (err) {
+        console.warn("PDF libraries not loaded:", err);
+      }
 
-      // Helper function
       const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
         document.getElementById(id) as T | null;
 
-      // DOM Elements
+      // DOM nodes
       const progressSteps = Array.from(
         document.querySelectorAll<HTMLElement>(".progress-step")
       );
@@ -79,7 +79,7 @@ export default function AppointmentPage() {
         "saveToBackendBtn"
       ) as HTMLButtonElement | null;
 
-      // Local state
+      // local state
       let currentStep = 0;
       let selectedDate: Date | null = null;
       let selectedTime: string | null = null;
@@ -88,18 +88,16 @@ export default function AppointmentPage() {
       let generatedRef: string | null = null;
       let appointmentData: any = {};
 
-      // Safety checks
       if (!calendarGrid || !timeSlotsContainer) {
         console.warn("Appointment page: required DOM nodes missing.");
         return;
       }
 
-      // Function to fetch booked appointments from Supabase
+      // fetch booked appointments for next 6 months
       async function fetchBookedAppointments() {
         try {
-          // Get current date and calculate date range for the next 6 months
           const now = new Date();
-          const sixMonthsFromNow = new Date();
+          const sixMonthsFromNow = new Date(now);
           sixMonthsFromNow.setMonth(now.getMonth() + 6);
 
           const { data, error } = await supabase
@@ -114,13 +112,9 @@ export default function AppointmentPage() {
             return;
           }
 
-          // Clear previous booked dates
           bookedDates.clear();
-
-          // Store booked dates in a Set for quick lookup
           if (data) {
-            data.forEach((appointment) => {
-              // Convert to YYYY-MM-DD format for consistent comparison
+            data.forEach((appointment: any) => {
               const date = new Date(appointment.appointment_date);
               const dateString = `${date.getFullYear()}-${(date.getMonth() + 1)
                 .toString()
@@ -131,16 +125,13 @@ export default function AppointmentPage() {
               bookedDates.add(dateString);
             });
           }
-
-          console.log("Booked dates loaded:", Array.from(bookedDates));
         } catch (err) {
           console.error("Failed to fetch appointments:", err);
         }
       }
 
-      // Calendar and time functions
+      // calendar rendering
       function renderCalendar(month: number, year: number) {
-        // Clear previous day cells (keep header 7 children if you used weekday headers)
         while (calendarGrid.children.length > 7) {
           calendarGrid.removeChild(calendarGrid.lastChild as ChildNode);
         }
@@ -164,16 +155,18 @@ export default function AppointmentPage() {
 
         const firstDay = new Date(year, month, 1).getDay();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
+
         for (let i = 0; i < firstDay; i++) {
           const emptyCell = document.createElement("div");
           emptyCell.className = "calendar-day disabled";
-          emptyCell.textContent = "";
+          emptyCell.setAttribute("aria-hidden", "true");
           calendarGrid.appendChild(emptyCell);
         }
 
         const today = new Date();
         for (let i = 1; i <= daysInMonth; i++) {
-          const dayCell = document.createElement("div");
+          const dayCell = document.createElement("button");
+          dayCell.type = "button";
           dayCell.className = "calendar-day";
           dayCell.textContent = String(i);
 
@@ -187,34 +180,28 @@ export default function AppointmentPage() {
             .toString()
             .padStart(2, "0")}`;
 
-          // Check if date is booked
           if (bookedDates.has(dateString)) {
             dayCell.classList.add("booked");
-            dayCell.classList.add("disabled");
-          }
-          // Check if date is in the past
-          else if (
+            dayCell.setAttribute("aria-disabled", "true");
+            dayCell.disabled = true;
+          } else if (
             cellDate < today &&
             cellDate.toDateString() !== today.toDateString()
           ) {
             dayCell.classList.add("disabled");
-          }
-          // Check if date is today
-          else if (cellDate.toDateString() === today.toDateString()) {
+            dayCell.disabled = true;
+          } else if (cellDate.toDateString() === today.toDateString()) {
             dayCell.classList.add("today");
+            dayCell.setAttribute("aria-current", "date");
           }
 
           const onClick = () => {
-            if (
-              !dayCell.classList.contains("disabled") &&
-              !dayCell.classList.contains("booked")
-            ) {
-              document
-                .querySelectorAll(".calendar-day")
-                .forEach((d) => d.classList.remove("selected"));
-              dayCell.classList.add("selected");
-              selectedDate = new Date(year, month, i);
-            }
+            if (dayCell.disabled) return;
+            document
+              .querySelectorAll(".calendar-day")
+              .forEach((d) => d.classList.remove("selected"));
+            dayCell.classList.add("selected");
+            selectedDate = new Date(year, month, i);
           };
           dayCell.addEventListener("click", onClick);
           cleanupFns.push(() => dayCell.removeEventListener("click", onClick));
@@ -223,6 +210,7 @@ export default function AppointmentPage() {
         }
       }
 
+      // time slots
       function generateTimeSlots() {
         timeSlotsContainer.innerHTML = "";
         const startHour = 9;
@@ -233,7 +221,8 @@ export default function AppointmentPage() {
             const timeString = `${hour % 12 === 0 ? 12 : hour % 12}:${
               minute === 0 ? "00" : minute
             } ${hour >= 12 ? "PM" : "AM"}`;
-            const timeSlot = document.createElement("div");
+            const timeSlot = document.createElement("button");
+            timeSlot.type = "button";
             timeSlot.className = "time-slot";
             timeSlot.textContent = timeString;
             const onClick = () => {
@@ -279,7 +268,6 @@ export default function AppointmentPage() {
         currentStep = stepIndex;
         updateProgressBar();
 
-        // When moving to step 2 (appointment selection), fetch booked dates
         if (currentStep === 1) {
           await fetchBookedAppointments();
           renderCalendar(currentMonth, currentYear);
@@ -415,42 +403,33 @@ export default function AppointmentPage() {
         }
 
         appointmentData = collectAppointmentData();
-        console.log("Appointment data collected:", appointmentData);
       }
 
-      // Improved PDF generation
+      // PDF generation
       async function downloadAppointmentSlip() {
-        if (!jsPDF) return;
+        if (!jsPDF) {
+          alert("PDF library not available.");
+          return;
+        }
 
         try {
           const pdf = new jsPDF("p", "mm", "a4");
-
-          // Add background color
           pdf.setFillColor(240, 240, 240);
           pdf.rect(0, 0, 210, 297, "F");
-
-          // Add header with logo
           pdf.setFillColor(59, 130, 246);
           pdf.rect(0, 0, 210, 40, "F");
-
           pdf.setFontSize(20);
           pdf.setTextColor(255, 255, 255);
           pdf.text("Government Services", 105, 20, { align: "center" });
-
           pdf.setFontSize(16);
           pdf.text("Appointment Confirmation", 105, 30, { align: "center" });
-
-          // Add content
           pdf.setFontSize(12);
           pdf.setTextColor(0, 0, 0);
-
-          // Tracking number
           pdf.setFont(undefined, "bold");
           pdf.text("Tracking #:", 20, 60);
           pdf.setFont(undefined, "normal");
-          pdf.text(generatedRef || "", 50, 60);
+          pdf.text(generatedRef || "", 60, 60);
 
-          // Add details in a table-like format
           const details = [
             [
               "Name:",
@@ -472,11 +451,10 @@ export default function AppointmentPage() {
             pdf.setFont(undefined, "bold");
             pdf.text(label, 20, yPosition);
             pdf.setFont(undefined, "normal");
-            pdf.text(value, 60, yPosition);
+            pdf.text(String(value), 60, yPosition);
             yPosition += 10;
           });
 
-          // Add footer
           pdf.setFontSize(10);
           pdf.setTextColor(100, 100, 100);
           pdf.text(
@@ -489,21 +467,19 @@ export default function AppointmentPage() {
             align: "center",
           });
 
-          // Add decorative elements
           pdf.setDrawColor(59, 130, 246);
           pdf.setLineWidth(0.5);
           pdf.line(15, 45, 195, 45);
           pdf.line(15, 270, 195, 270);
 
-          // Save the PDF
           pdf.save(`appointment_slip_${generatedRef || "x"}.pdf`);
         } catch (err) {
           console.error("Error generating PDF", err);
-          alert("Error generating PDF. Check console for details.");
+          alert("Error generating PDF. Check console.");
         }
       }
 
-      // File validation
+      // file validation & Cloudinary helper
       function assertFileIsValid(file: File) {
         if (!(file instanceof File)) throw new Error("Not a File object");
         if (file.size === 0) throw new Error("File is empty");
@@ -511,23 +487,18 @@ export default function AppointmentPage() {
         if (file.size > MAX_SIZE) throw new Error("File too large (>10MB)");
       }
 
-      // Cloudinary upload helper
       async function uploadFileToCloudinary(file: File, folder: string) {
         const CLOUD_NAME =
           (import.meta.env.VITE_CLOUDINARY_CLOUD_NAME as string) || "";
         const UPLOAD_PRESET =
           (import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET as string) || "";
-
-        if (!CLOUD_NAME || !UPLOAD_PRESET) {
+        if (!CLOUD_NAME || !UPLOAD_PRESET)
           throw new Error("Cloudinary not configured.");
-        }
-
         const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/upload`;
         const fd = new FormData();
         fd.append("file", file);
         fd.append("upload_preset", UPLOAD_PRESET);
         if (folder) fd.append("folder", folder);
-
         const resp = await fetch(url, { method: "POST", body: fd });
         if (!resp.ok) {
           const text = await resp.text();
@@ -539,14 +510,13 @@ export default function AppointmentPage() {
         return json.secure_url as string;
       }
 
-      // Success notification function
+      // friendly success notification (DOM element)
       function showSuccessNotification() {
-        // Create notification element
         const notification = document.createElement("div");
         notification.className = "success-notification";
         notification.innerHTML = `
-          <div class="success-icon">
-            <svg viewBox="0 0 100 100">
+          <div class="success-icon" aria-hidden="true">
+            <svg viewBox="0 0 100 100" width="40" height="40" aria-hidden="true">
               <path class="checkmark" fill="none" stroke="#4CAF50" stroke-width="8" d="M20,50 L40,70 L80,30"/>
             </svg>
           </div>
@@ -554,110 +524,38 @@ export default function AppointmentPage() {
             <h3>Appointment Confirmed!</h3>
             <p>Your appointment has been successfully scheduled. A confirmation email has been sent.</p>
           </div>
-          <button class="close-notification">&times;</button>
+          <button class="close-notification" aria-label="Close">&times;</button>
         `;
-
-        // Add styles if not already added
         if (!document.getElementById("success-notification-styles")) {
           const styles = document.createElement("style");
           styles.id = "success-notification-styles";
           styles.textContent = `
-            .success-notification {
-              position: fixed;
-              top: 20px;
-              right: 20px;
-              background: white;
-              border-left: 4px solid #4CAF50;
-              border-radius: 4px;
-              box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-              padding: 16px;
-              display: flex;
-              align-items: center;
-              z-index: 10000;
-              animation: slideIn 0.5s ease-out;
-              max-width: 400px;
-            }
-            @keyframes slideIn {
-              from { transform: translateX(100%); opacity: 0; }
-              to { transform: translateX(0); opacity: 1; }
-            }
-            .success-icon {
-              width: 40px;
-              height: 40px;
-              margin-right: 16px;
-              flex-shrink: 0;
-            }
-            .checkmark {
-              stroke-dasharray: 100;
-              stroke-dashoffset: 100;
-              animation: drawCheckmark 0.5s ease-in-out 0.5s forwards;
-            }
-            @keyframes drawCheckmark {
-              to { stroke-dashoffset: 0; }
-            }
-            .success-content h3 {
-              margin: 0 0 8px 0;
-              color: #2E7D32;
-            }
-            .success-content p {
-              margin: 0;
-              color: #333;
-            }
-            .close-notification {
-              background: none;
-              border: none;
-              font-size: 20px;
-              cursor: pointer;
-              margin-left: 16px;
-              color: #999;
-            }
+            .success-notification { position: fixed; top: 20px; right: 20px; background: white; border-left: 4px solid #4CAF50; border-radius: 6px; box-shadow: 0 6px 24px rgba(0,0,0,0.12); padding: 14px; display:flex; gap:10px; align-items:center; z-index:10000; max-width:420px; animation: slideInNotif .45s ease-out; }
+            @keyframes slideInNotif { from { transform: translateX(100%); opacity:0 } to { transform: translateX(0); opacity:1 } }
+            .success-content h3 { margin:0 0 6px 0; color:#2E7D32; font-size:1rem; }
+            .success-content p { margin:0; color:#333; font-size:0.9rem; }
+            .close-notification { background:none; border:none; font-size:20px; cursor:pointer; margin-left:8px; color:#777; }
+            .checkmark { stroke-dasharray:100; stroke-dashoffset:100; animation:drawCheck 0.5s ease-in-out 0.2s forwards; }
+            @keyframes drawCheck { to { stroke-dashoffset: 0 } }
+            @keyframes slideOutNotif { from { transform: translateX(0); opacity:1 } to { transform: translateX(100%); opacity:0 } }
           `;
           document.head.appendChild(styles);
         }
-
-        // Add to page
         document.body.appendChild(notification);
-
-        // Add close functionality
         const closeBtn = notification.querySelector(".close-notification");
-        if (closeBtn) {
-          closeBtn.addEventListener("click", () => {
-            notification.style.animation = "slideOut 0.5s ease-in forwards";
-            setTimeout(() => {
-              if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-              }
-            }, 500);
-          });
-        }
-
-        // Auto-remove after 5 seconds
+        closeBtn?.addEventListener("click", () => {
+          notification.style.animation = "slideOutNotif .4s forwards";
+          setTimeout(() => notification.remove(), 400);
+        });
         setTimeout(() => {
-          if (notification.parentNode) {
-            notification.style.animation = "slideOut 0.5s ease-in forwards";
-            setTimeout(() => {
-              if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-              }
-            }, 500);
+          if (notification.parentElement) {
+            notification.style.animation = "slideOutNotif .4s forwards";
+            setTimeout(() => notification.remove(), 400);
           }
         }, 5000);
-
-        // Add slideOut animation if not already defined
-        if (!document.querySelector("style[data-slide-out]")) {
-          const slideOutStyle = document.createElement("style");
-          slideOutStyle.setAttribute("data-slide-out", "true");
-          slideOutStyle.textContent = `
-            @keyframes slideOut {
-              from { transform: translateX(0); opacity: 1; }
-              to { transform: translateX(100%); opacity: 0; }
-            }
-          `;
-          document.head.appendChild(slideOutStyle);
-        }
       }
 
-      // Updated saveToBackend function with Cloudinary and success notification
+      // save to backend (upload & supabase insert)
       async function saveToBackend() {
         if (!saveToBackendBtn) return;
         const originalText = saveToBackendBtn.innerHTML;
@@ -666,7 +564,6 @@ export default function AppointmentPage() {
         saveToBackendBtn.disabled = true;
 
         try {
-          // Generate reference if not exists
           if (!generatedRef) {
             generatedRef =
               typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -674,10 +571,8 @@ export default function AppointmentPage() {
                 : fallbackUUID();
           }
 
-          // Collect appointment data
           appointmentData = collectAppointmentData();
 
-          // Prepare files for upload
           const fileInputs: Record<string, HTMLInputElement | null> = {
             passport: passportFile ?? null,
             photo: passportPhotoFile ?? null,
@@ -698,45 +593,24 @@ export default function AppointmentPage() {
             ) as HTMLInputElement | null,
           };
 
-          // Upload files to Cloudinary
           const uploadedUrls: Record<string, string> = {};
           for (const [key, inputEl] of Object.entries(fileInputs)) {
             const file = inputEl?.files?.[0];
-            if (!file) {
-              console.log(`[upload] no file for key="${key}" — skipping`);
-              continue;
-            }
-
+            if (!file) continue;
             assertFileIsValid(file);
-            console.log(`[upload] uploading to Cloudinary`, {
-              key,
-              name: file.name,
-              size: file.size,
-              type: file.type,
-            });
-
             const folder = generatedRef ?? "appointments-temp";
-            try {
-              const secureUrl = await uploadFileToCloudinary(
-                file,
-                `appointments/${folder}`
-              );
-              uploadedUrls[key] = secureUrl;
-              console.log(`[upload] done ${key}:`, secureUrl);
-            } catch (err: any) {
-              console.error(`[upload] cloudinary failed for ${key}`, err);
-              throw err;
-            }
+            const secureUrl = await uploadFileToCloudinary(
+              file,
+              `appointments/${folder}`
+            );
+            uploadedUrls[key] = secureUrl;
           }
 
-          // Build DB record
           let serviceVal: any = appointmentData.service;
           try {
             if (typeof serviceVal === "string")
               serviceVal = JSON.parse(serviceVal);
-          } catch (e) {
-            /* leave as string */
-          }
+          } catch {}
 
           const record = {
             tracking_number: generatedRef,
@@ -754,29 +628,19 @@ export default function AppointmentPage() {
             raw_payload: appointmentData,
           };
 
-          // Insert into Supabase
-          const { data, error: insertError } = await supabase
+          const { error: insertError } = await supabase
             .from("appointments")
             .insert([record], { returning: "minimal" });
+          if (insertError) throw insertError;
 
-          console.log("insert result:", { data, insertError });
-          if (insertError) {
-            console.error("Insert failed (full error):", insertError);
-            throw insertError;
-          }
-
-          // Update UI and show success notification
-          appointmentData = data && data.length ? data[0] : record;
           if (final_tracking) final_tracking.textContent = generatedRef ?? "";
-
-          // Show the enhanced success notification instead of alert
           showSuccessNotification();
-
-          console.log("Saved appointment (client-side):", appointmentData);
         } catch (err: any) {
           console.error("Save failed", err);
-          const message = err?.message || err?.error || JSON.stringify(err);
-          alert("Failed to save appointment: " + message);
+          alert(
+            "Failed to save appointment: " +
+              (err?.message || JSON.stringify(err))
+          );
         } finally {
           if (saveToBackendBtn) {
             saveToBackendBtn.innerHTML = originalText;
@@ -785,7 +649,6 @@ export default function AppointmentPage() {
         }
       }
 
-      // UUID fallback
       function fallbackUUID() {
         return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
           /[xy]/g,
@@ -797,7 +660,7 @@ export default function AppointmentPage() {
         );
       }
 
-      // Event bindings
+      // event bindings
       if (serviceTypeSelect) {
         const onChange = () => {
           updateServiceNextState();
@@ -922,7 +785,7 @@ export default function AppointmentPage() {
         );
       }
 
-      // Initialize
+      // initialize
       function initCalendar() {
         renderCalendar(currentMonth, currentYear);
         generateTimeSlots();
@@ -931,19 +794,17 @@ export default function AppointmentPage() {
         updateServiceNextState();
         updateProgressBar();
       }
-
-      // Fetch booked appointments on initial load
       await fetchBookedAppointments();
       initCalendar();
       initEventListeners();
     })();
 
-    // Cleanup
+    // cleanup on unmount
     return () => {
       cleanupFns.forEach((fn) => {
         try {
           fn();
-        } catch (e) {
+        } catch {
           /* ignore */
         }
       });
@@ -966,11 +827,12 @@ export default function AppointmentPage() {
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  aria-hidden
                 >
                   <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
                     d="M4 6h16M4 12h16M4 18h16"
                   />
                 </svg>
@@ -981,6 +843,7 @@ export default function AppointmentPage() {
                   src="https://images.unsplash.com/photo-1521791055366-0d553872125f?w=120&q=80&auto=format&fit=crop"
                   className="w-10 h-10 rounded-md object-cover shadow-sm"
                   alt="logo"
+                  loading="lazy"
                 />
                 <span className="hidden md:inline-block text-lg font-semibold">
                   VisaPremium
@@ -1023,11 +886,12 @@ export default function AppointmentPage() {
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  aria-hidden
                 >
                   <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
                     d="M4 6h16M4 12h16M4 18h16"
                   />
                 </svg>
@@ -1037,7 +901,7 @@ export default function AppointmentPage() {
         </div>
       </nav>
 
-      <main className="appointment-container" style={{ marginTop: "100px" }}>
+      <main className="appointment-container" style={{ marginTop: 100 }}>
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-gray-800">
             Schedule an Appointment
@@ -1047,10 +911,18 @@ export default function AppointmentPage() {
           </p>
         </div>
 
-        <div className="progress-container">
-          <div className="progress-bar" id="progressBar"></div>
+        <div className="progress-container" aria-hidden={false}>
+          <div className="progress-wrap">
+            <div
+              id="progressBar"
+              className="progress-bar"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+            />
+          </div>
 
-          <div className="progress-step active">
+          <div className="progress-step active" aria-current="step">
             <div className="progress-step-number">1</div>
             <div className="progress-step-label">Service Type</div>
           </div>
@@ -1071,17 +943,25 @@ export default function AppointmentPage() {
           </div>
         </div>
 
-        <div className="appointment-card">
-          <section className="form-section active" id="step1">
-            <h3 className="text-2xl font-semibold text-gray-800 mb-6">
+        <div className="appointment-card card glass">
+          {/* Step 1 */}
+          <section
+            className="form-section active"
+            id="step1"
+            aria-labelledby="step1Title"
+          >
+            <h3
+              id="step1Title"
+              className="text-2xl font-semibold text-gray-800 mb-6"
+            >
               Select Service Type
             </h3>
 
             <div className="grid md:grid-cols-2 gap-8">
               <div>
-                <div className="bg-blue-50 p-6 rounded-lg">
+                <div className="bg-muted p-6 rounded-lg">
                   <div className="text-center mb-4">
-                    <i className="fas fa-concierge-bell text-4xl text-blue-600"></i>
+                    <i className="fas fa-concierge-bell text-4xl" aria-hidden />
                   </div>
                   <p className="text-gray-700">
                     <span className="font-semibold">1.</span> Select service
@@ -1096,8 +976,14 @@ export default function AppointmentPage() {
 
               <div>
                 <div className="form-group">
-                  <label className="form-label">Service Type</label>
-                  <select id="serviceTypeSelect" className="form-select">
+                  <label htmlFor="serviceTypeSelect" className="form-label">
+                    Service Type
+                  </label>
+                  <select
+                    id="serviceTypeSelect"
+                    className="form-select"
+                    aria-required
+                  >
                     <option value="">Select a service</option>
                     <option value='{"id":1,"name":"Nigeria Visa","sortCode":"NVS"}'>
                       Nigeria Visa
@@ -1118,7 +1004,9 @@ export default function AppointmentPage() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Center</label>
+                  <label htmlFor="centerSelect" className="form-label">
+                    Center
+                  </label>
                   <select id="centerSelect" className="form-select">
                     <option value="">Select center</option>
                     <option value="1">London, UK</option>
@@ -1134,32 +1022,38 @@ export default function AppointmentPage() {
                 <div className="text-right mt-6">
                   <button
                     id="serviceNextBtn"
-                    className="btn btn-primary"
+                    className="btn cta-btn"
                     disabled
+                    aria-disabled="true"
                   >
-                    Next <i className="fas fa-arrow-right ml-2"></i>
+                    Next <i className="fas fa-arrow-right ml-2" aria-hidden />
                   </button>
                 </div>
               </div>
             </div>
           </section>
 
-          <section className="form-section" id="step2">
-            <h3 className="text-2xl font-semibold text-gray-800 mb-6">
-              Select Date & Time
+          {/* Step 2 */}
+          <section
+            className="form-section"
+            id="step2"
+            aria-labelledby="step2Title"
+          >
+            <h3
+              id="step2Title"
+              className="text-2xl font-semibold text-gray-800 mb-6"
+            >
+              Select Date &amp; Time
             </h3>
 
-            <div className="bg-blue-50 p-6 rounded-lg mb-6">
-              <p className="font-semibold text-blue-800 mb-2">
+            <div className="bg-muted p-6 rounded-lg mb-6">
+              <p className="font-semibold mb-2">
                 Please select appointment type
               </p>
-              <ol className="list-decimal ml-5 space-y-1 text-blue-700">
+              <ol className="list-decimal ml-5 space-y-1">
                 <li>
-                  Pick a date from the calendar.
-                  <strong>
-                    Please note that days grayed out are not available for
-                    appointment booking.
-                  </strong>
+                  Pick a date from the calendar.{" "}
+                  <strong>Days grayed out are not available.</strong>
                 </li>
                 <li>Pick a slot from the available timeslots.</li>
                 <li>If visa services please select visa type.</li>
@@ -1171,7 +1065,9 @@ export default function AppointmentPage() {
               className="form-group"
               style={{ display: "none" }}
             >
-              <label className="form-label">Visa Type</label>
+              <label htmlFor="visaTypeSelect" className="form-label">
+                Visa Type
+              </label>
               <select id="visaTypeSelect" className="form-select">
                 <option value="">Select visa type</option>
                 <option value="tourist">Tourist Visa</option>
@@ -1182,21 +1078,35 @@ export default function AppointmentPage() {
             </div>
 
             <div className="calendar-header">
-              <button id="calPrevBtn" className="btn btn-outline">
-                <i className="fas fa-chevron-left"></i>
+              <button
+                id="calPrevBtn"
+                className="btn btn-outline"
+                aria-label="Previous month"
+              >
+                <i className="fas fa-chevron-left" aria-hidden />
               </button>
               <div
                 id="calendarMonthLabel"
                 className="text-xl font-semibold text-gray-800"
+                aria-live="polite"
               >
                 November 2023
               </div>
-              <button id="calNextBtn" className="btn btn-outline">
-                <i className="fas fa-chevron-right"></i>
+              <button
+                id="calNextBtn"
+                className="btn btn-outline"
+                aria-label="Next month"
+              >
+                <i className="fas fa-chevron-right" aria-hidden />
               </button>
             </div>
 
-            <div className="calendar mb-6" id="calendarGrid">
+            <div
+              className="calendar mb-6"
+              id="calendarGrid"
+              role="grid"
+              aria-label="Appointment calendar"
+            >
               <div className="calendar-weekday">Sun</div>
               <div className="calendar-weekday">Mon</div>
               <div className="calendar-weekday">Tue</div>
@@ -1212,27 +1122,42 @@ export default function AppointmentPage() {
             <div
               className="time-slots-container mb-6"
               id="timeSlotsContainer"
+              aria-live="polite"
             ></div>
 
             <div className="flex justify-between">
               <button className="btn btn-outline prev-step">
-                <i className="fas fa-arrow-left mr-2"></i> Back
+                <i className="fas fa-arrow-left mr-2" aria-hidden /> Back
               </button>
-              <button className="btn btn-primary next-step">
-                Next <i className="fas fa-arrow-right ml-2"></i>
+              <button className="btn cta-btn next-step">
+                Next <i className="fas fa-arrow-right ml-2" aria-hidden />
               </button>
             </div>
           </section>
 
-          <section className="form-section" id="step3">
-            <h3 className="text-2xl font-semibold text-gray-800 mb-6">
+          {/* Step 3 */}
+          <section
+            className="form-section"
+            id="step3"
+            aria-labelledby="step3Title"
+          >
+            <h3
+              id="step3Title"
+              className="text-2xl font-semibold text-gray-800 mb-6"
+            >
               Applicant Information
             </h3>
 
-            <form id="applicantForm" className="space-y-6">
+            <form
+              id="applicantForm"
+              className="space-y-6"
+              onSubmit={(e) => e.preventDefault()}
+            >
               <div className="form-grid">
                 <div className="form-group">
-                  <label className="form-label">First Name *</label>
+                  <label htmlFor="applicantName" className="form-label">
+                    First Name *
+                  </label>
                   <input
                     id="applicantName"
                     name="APPLICANT_NAME"
@@ -1242,7 +1167,9 @@ export default function AppointmentPage() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Last Name *</label>
+                  <label htmlFor="applicantSurname" className="form-label">
+                    Last Name *
+                  </label>
                   <input
                     id="applicantSurname"
                     name="APPLICANT_SURNAME"
@@ -1252,7 +1179,9 @@ export default function AppointmentPage() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Email *</label>
+                  <label htmlFor="applicantEmail" className="form-label">
+                    Email *
+                  </label>
                   <input
                     id="applicantEmail"
                     name="APPLICANT_EMAIL"
@@ -1263,7 +1192,9 @@ export default function AppointmentPage() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Phone Number *</label>
+                  <label htmlFor="applicantPhone" className="form-label">
+                    Phone Number *
+                  </label>
                   <input
                     id="applicantPhone"
                     name="APPLICANT_PHONE_NUMBER"
@@ -1273,7 +1204,9 @@ export default function AppointmentPage() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Desired Study Program</label>
+                  <label htmlFor="desireProgram" className="form-label">
+                    Desired Study Program
+                  </label>
                   <input
                     id="desireProgram"
                     name="DESIRE_STUDY_PROGRAM"
@@ -1282,7 +1215,9 @@ export default function AppointmentPage() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Desired Course</label>
+                  <label htmlFor="desireCourse" className="form-label">
+                    Desired Course
+                  </label>
                   <input
                     id="desireCourse"
                     name="DESIRE_COURSE"
@@ -1291,7 +1226,7 @@ export default function AppointmentPage() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">
+                  <label htmlFor="passportFile" className="form-label">
                     Passport (scanned page) *
                   </label>
                   <input
@@ -1302,13 +1237,13 @@ export default function AppointmentPage() {
                     accept=".pdf,image/*"
                     required
                   />
-                  <p className="text-sm text-gray-500 mt-1">
-                    Accepted: PDF, JPG, PNG
-                  </p>
+                  <p className="text-sm">Accepted: PDF, JPG, PNG</p>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Passport-sized Photo *</label>
+                  <label htmlFor="passportPhotoFile" className="form-label">
+                    Passport-sized Photo *
+                  </label>
                   <input
                     id="passportPhotoFile"
                     name="PASSPORT_SIZED_PHOTO"
@@ -1317,13 +1252,13 @@ export default function AppointmentPage() {
                     accept="image/*"
                     required
                   />
-                  <p className="text-sm text-gray-500 mt-1">
-                    Accepted: JPG, PNG (2x2 inches)
-                  </p>
+                  <p className="text-sm">Accepted: JPG, PNG (2x2 inches)</p>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">O-Level Certificate</label>
+                  <label htmlFor="olevelCert" className="form-label">
+                    O-Level Certificate
+                  </label>
                   <input
                     id="olevelCert"
                     name="O_LEVEL_CERTIFICATE"
@@ -1334,7 +1269,9 @@ export default function AppointmentPage() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Secondary School Address</label>
+                  <label htmlFor="addrSecondary" className="form-label">
+                    Secondary School Address
+                  </label>
                   <input
                     id="addrSecondary"
                     name="ADDRESS_OF_SECONDARY_SCHOOL"
@@ -1343,7 +1280,9 @@ export default function AppointmentPage() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">A-Level Certificate</label>
+                  <label htmlFor="alevelCert" className="form-label">
+                    A-Level Certificate
+                  </label>
                   <input
                     id="alevelCert"
                     name="A_LEVEL_CERTIFICATE"
@@ -1354,7 +1293,9 @@ export default function AppointmentPage() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">High School Address</label>
+                  <label htmlFor="addrHighSchool" className="form-label">
+                    High School Address
+                  </label>
                   <input
                     id="addrHighSchool"
                     name="ADDRESS_OF_HIGH_SCHOOL"
@@ -1363,7 +1304,9 @@ export default function AppointmentPage() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Bachelor Certificate</label>
+                  <label htmlFor="bachelorCert" className="form-label">
+                    Bachelor Certificate
+                  </label>
                   <input
                     id="bachelorCert"
                     name="BACHELOR"
@@ -1374,7 +1317,9 @@ export default function AppointmentPage() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">University Address</label>
+                  <label htmlFor="addrUniversity" className="form-label">
+                    University Address
+                  </label>
                   <input
                     id="addrUniversity"
                     name="ADDRESS_OF_UNIVERSITY"
@@ -1383,7 +1328,9 @@ export default function AppointmentPage() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Transcript</label>
+                  <label htmlFor="transcriptFile" className="form-label">
+                    Transcript
+                  </label>
                   <input
                     id="transcriptFile"
                     name="TRANSCRIPT"
@@ -1394,7 +1341,9 @@ export default function AppointmentPage() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Other Documents</label>
+                  <label htmlFor="othersFile" className="form-label">
+                    Other Documents
+                  </label>
                   <input
                     id="othersFile"
                     name="OTHERS"
@@ -1405,7 +1354,9 @@ export default function AppointmentPage() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Additional Email</label>
+                  <label htmlFor="emailAddress" className="form-label">
+                    Additional Email
+                  </label>
                   <input
                     id="emailAddress"
                     name="EMAIL_ADDRESS"
@@ -1417,27 +1368,35 @@ export default function AppointmentPage() {
 
               <div className="flex justify-between pt-4">
                 <button className="btn btn-outline prev-step">
-                  <i className="fas fa-arrow-left mr-2"></i> Back
+                  <i className="fas fa-arrow-left mr-2" aria-hidden /> Back
                 </button>
                 <button
                   id="applicantNextBtn"
                   type="button"
-                  className="btn btn-primary"
+                  className="btn cta-btn"
                 >
-                  Next <i className="fas fa-arrow-right ml-2"></i>
+                  Next <i className="fas fa-arrow-right ml-2" aria-hidden />
                 </button>
               </div>
             </form>
           </section>
 
-          <section className="form-section" id="step4">
-            <h3 className="text-2xl font-semibold text-gray-800 mb-6">
+          {/* Step 4 */}
+          <section
+            className="form-section"
+            id="step4"
+            aria-labelledby="step4Title"
+          >
+            <h3
+              id="step4Title"
+              className="text-2xl font-semibold text-gray-800 mb-6"
+            >
               Appointment Confirmation
             </h3>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
-                <div className="info-card">
+                <div className="info-card card">
                   <h4 className="text-xl font-semibold text-gray-800 mb-4">
                     Appointment Details
                   </h4>
@@ -1448,56 +1407,48 @@ export default function AppointmentPage() {
                       -
                     </span>
                   </div>
-
                   <div className="info-item">
                     <span className="info-label">Email:</span>
                     <span className="info-value" id="final_email">
                       -
                     </span>
                   </div>
-
                   <div className="info-item">
                     <span className="info-label">Phone:</span>
                     <span className="info-value" id="final_phone">
                       -
                     </span>
                   </div>
-
                   <div className="info-item">
                     <span className="info-label">Service:</span>
                     <span className="info-value" id="final_service">
                       -
                     </span>
                   </div>
-
                   <div className="info-item">
                     <span className="info-label">Appointment Status:</span>
                     <span className="info-value" id="final_status">
                       Processing
                     </span>
                   </div>
-
                   <div className="info-item">
                     <span className="info-label">Time Slot:</span>
                     <span className="info-value" id="final_processing_time">
                       -
                     </span>
                   </div>
-
                   <div className="info-item">
                     <span className="info-label">Tracking Number:</span>
                     <span className="info-value" id="final_tracking">
                       -
                     </span>
                   </div>
-
                   <div className="info-item">
                     <span className="info-label">Appointment Date:</span>
                     <span className="info-value" id="final_slot_date">
                       -
                     </span>
                   </div>
-
                   <div className="info-item">
                     <span className="info-label">Center:</span>
                     <span className="info-value" id="final_center_address">
@@ -1507,10 +1458,10 @@ export default function AppointmentPage() {
                 </div>
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-6 flex flex-col">
+              <div className="bg-muted rounded-lg p-6 flex flex-col">
                 <div className="text-center mb-6">
                   <div className="success-icon">
-                    <i className="fas fa-check-circle"></i>
+                    <i className="fas fa-check-circle" aria-hidden />
                   </div>
                   <h5 className="text-lg font-semibold text-gray-800 mb-2">
                     Booking Successful!
@@ -1521,26 +1472,23 @@ export default function AppointmentPage() {
                 </div>
 
                 <div className="mt-auto space-y-3">
-                  <button
-                    id="downloadPdfBtn"
-                    className="btn btn-primary w-full"
-                  >
-                    <i className="fas fa-download mr-2"></i> Download
+                  <button id="downloadPdfBtn" className="btn cta-btn w-full">
+                    <i className="fas fa-download mr-2" aria-hidden /> Download
                     Appointment Slip
                   </button>
-
                   <button
                     id="saveToBackendBtn"
-                    className="btn btn-success w-full"
+                    className="btn vp-primary w-full"
                   >
-                    <i className="fas fa-save mr-2"></i> Save Appointment
+                    <i className="fas fa-save mr-2" aria-hidden /> Save
+                    Appointment
                   </button>
-
                   <button
                     className="btn btn-outline w-full"
                     onClick={() => window.print()}
                   >
-                    <i className="fas fa-print mr-2"></i> Print Checklist
+                    <i className="fas fa-print mr-2" aria-hidden /> Print
+                    Checklist
                   </button>
                 </div>
 
@@ -1555,12 +1503,18 @@ export default function AppointmentPage() {
         </div>
 
         <div className="text-center mt-6 text-gray-600">
-          <p>Need help? Email support@govservices.gov or call (123) 456-7890</p>
+          <p>
+            Need help? Email{" "}
+            <a href="mailto:support@govservices.gov" className="text-primary">
+              support@govservices.gov
+            </a>{" "}
+            or call (123) 456-7890
+          </p>
         </div>
       </main>
 
       <footer className="mt-8 mb-8 text-center text-sm text-gray-500">
-        © 2025 Government Services. All rights reserved.
+        © {new Date().getFullYear()} Government Services. All rights reserved.
       </footer>
 
       <div
@@ -1569,9 +1523,9 @@ export default function AppointmentPage() {
           position: "absolute",
           left: "-9999px",
           top: "-9999px",
-          width: "600px",
+          width: 600,
           background: "white",
-          padding: "20px",
+          padding: 20,
         }}
       >
         <div className="slip-container">
@@ -1582,42 +1536,34 @@ export default function AppointmentPage() {
               Tracking #: <span id="pdf_tracking"></span>
             </p>
           </div>
-
           <div className="slip-detail">
             <span className="slip-label">Name:</span>
             <span className="slip-value" id="pdf_name"></span>
           </div>
-
           <div className="slip-detail">
             <span className="slip-label">Email:</span>
             <span className="slip-value" id="pdf_email"></span>
           </div>
-
           <div className="slip-detail">
             <span className="slip-label">Phone:</span>
             <span className="slip-value" id="pdf_phone"></span>
           </div>
-
           <div className="slip-detail">
             <span className="slip-label">Service:</span>
             <span className="slip-value" id="pdf_service"></span>
           </div>
-
           <div className="slip-detail">
             <span className="slip-label">Appointment Date:</span>
             <span className="slip-value" id="pdf_slot_date"></span>
           </div>
-
           <div className="slip-detail">
             <span className="slip-label">Time Slot:</span>
             <span className="slip-value" id="pdf_time_slot"></span>
           </div>
-
           <div className="slip-detail">
             <span className="slip-label">Center:</span>
             <span className="slip-value" id="pdf_center"></span>
           </div>
-
           <div className="slip-footer">
             <p>
               Please bring this slip and required documents to your appointment
