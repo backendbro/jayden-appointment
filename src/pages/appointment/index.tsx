@@ -29,6 +29,7 @@ export default function AppointmentPage(): JSX.Element {
 
       const $ = <T extends HTMLElement = HTMLElement>(id: string) =>
         document.getElementById(id) as T | null;
+      const wrap = document.querySelector(".progress-wrap");
 
       // DOM nodes
       const progressSteps = Array.from(
@@ -242,16 +243,52 @@ export default function AppointmentPage(): JSX.Element {
       }
 
       function updateProgressBar() {
-        if (progressBar) {
-          const progressPercentage =
-            (currentStep / (progressSteps.length - 1)) * 100;
-          progressBar.style.width = `${progressPercentage}%`;
-        }
-        progressSteps.forEach((step, index) => {
-          if (index < currentStep) {
+        if (!progressBar) return;
+
+        // progressSteps is NodeList converted earlier in your init
+        const steps = progressSteps; // your existing array
+        const stepCount = Math.max(1, steps.length);
+
+        // compute numeric index and safe boundary
+        const idx = Math.max(0, Math.min(currentStep, stepCount - 1));
+
+        // read bubble size from CSS var (fallback to 40)
+        const rootStyle = getComputedStyle(document.documentElement);
+        const bubbleSizeStr =
+          rootStyle.getPropertyValue("--progress-bubble-size") ||
+          rootStyle.getPropertyValue("--bubble-size") ||
+          "40px";
+        const bubbleSize = parseFloat(bubbleSizeStr) || 40;
+
+        // available track width inside the padded area
+        const wrapEl = document.querySelector(".progress-wrap");
+        if (!wrapEl) return;
+        const wrapRect = wrapEl.getBoundingClientRect();
+
+        // left offset (pixel) where the track *should* start = half bubble width
+        const leftOffset = bubbleSize / 2;
+
+        // total drawable track length (between centers of first and last bubble)
+        const available = Math.max(0, wrapRect.width - leftOffset * 2);
+
+        // desired progress fraction from 0..1
+        const fraction = stepCount === 1 ? 1 : idx / (stepCount - 1);
+
+        // set progressBar left and width in px so it meets bubble centers exactly
+        progressBar.style.left = `${leftOffset}px`;
+        progressBar.style.width = `${Math.round(available * fraction)}px`;
+
+        // accessibility: reflect numeric progress
+        const percent = Math.round(fraction * 100);
+        progressBar.setAttribute("aria-valuenow", String(percent));
+        progressBar.setAttribute("aria-valuetext", `${percent}% complete`);
+
+        // update step state classes (existing logic retained)
+        steps.forEach((step, i) => {
+          if (i < idx) {
             step.classList.add("completed");
             step.classList.remove("active");
-          } else if (index === currentStep) {
+          } else if (i === idx) {
             step.classList.add("active");
             step.classList.remove("completed");
           } else {
@@ -911,8 +948,13 @@ export default function AppointmentPage(): JSX.Element {
           </p>
         </div>
 
+        {/* Progress (steps moved inside progress-wrap) */}
         <div className="progress-container" aria-hidden={false}>
-          <div className="progress-wrap">
+          <div
+            className="progress-wrap"
+            // tell CSS how many steps there are; adjust number if you add/remove steps
+            style={{ ["--steps" as any]: 4 }}
+          >
             <div
               id="progressBar"
               className="progress-bar"
@@ -920,26 +962,27 @@ export default function AppointmentPage(): JSX.Element {
               aria-valuemin={0}
               aria-valuemax={100}
             />
-          </div>
 
-          <div className="progress-step active" aria-current="step">
-            <div className="progress-step-number">1</div>
-            <div className="progress-step-label">Service Type</div>
-          </div>
+            {/* Steps (now children of .progress-wrap so they overlay the line) */}
+            <div className="progress-step active" aria-current="step">
+              <div className="progress-step-number">1</div>
+              <div className="progress-step-label">Service Type</div>
+            </div>
 
-          <div className="progress-step">
-            <div className="progress-step-number">2</div>
-            <div className="progress-step-label">Appointment</div>
-          </div>
+            <div className="progress-step">
+              <div className="progress-step-number">2</div>
+              <div className="progress-step-label">Appointment</div>
+            </div>
 
-          <div className="progress-step">
-            <div className="progress-step-number">3</div>
-            <div className="progress-step-label">Applicant Data</div>
-          </div>
+            <div className="progress-step">
+              <div className="progress-step-number">3</div>
+              <div className="progress-step-label">Applicant Data</div>
+            </div>
 
-          <div className="progress-step">
-            <div className="progress-step-number">4</div>
-            <div className="progress-step-label">Confirmation</div>
+            <div className="progress-step">
+              <div className="progress-step-number">4</div>
+              <div className="progress-step-label">Confirmation</div>
+            </div>
           </div>
         </div>
 

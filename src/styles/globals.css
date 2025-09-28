@@ -1537,7 +1537,179 @@ img,
   height: auto;
 }
 
-html,
-body {
-  overflow-x: hidden;
+/* ensure intrude area doesn't overlap hero visually on small screens */
+.intrude-wrapper {
+  position: relative;
+  z-index: 1;
+}
+
+/* make sure hero overlay stays behind intrude cards */
+#heroSection .hero-overlay {
+  z-index: 0;
+}
+
+/* testimonial track improvements (already controlled by JS, this just cleans visuals) */
+.testim-viewport {
+  overflow: hidden;
+}
+.testim-track {
+  display: flex;
+  gap: 18px;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+}
+.testim-card {
+  scroll-snap-align: center;
+}
+
+/* small helper: if you use design tokens, swap --primary-color etc. */
+.bg-primary {
+  background-color: var(--primary, #0ea5e9);
+}
+.hover\\:bg-primary-dark:hover {
+  background-color: var(--primary-dark, #0284c7);
+}
+
+/* --------------------
+   Overrides: CTA (red-forward), intrude spacing and about spacing
+   -------------------- */
+
+/* Make primary CTAs more punchy (no blue) */
+.cta-btn {
+  /* push blue out, make it bold red gradient */
+  background: linear-gradient(90deg, var(--vp-primary), #b30f2e) !important;
+  box-shadow: 0 18px 50px rgba(220, 20, 60, 0.18) !important;
+  color: #fff !important;
+  border: none;
+}
+.cta-btn:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 26px 70px rgba(220, 20, 60, 0.2) !important;
+  opacity: 1;
+}
+
+/* Ghost CTA: subtle red outline so it reads against images */
+.cta-ghost {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 2px solid rgba(220, 20, 60, 0.14) !important;
+  color: #fff !important;
+  backdrop-filter: blur(6px);
+}
+.cta-ghost:hover {
+  transform: translateY(-3px) scale(1.02) !important;
+  background: rgba(220, 20, 60, 0.06) !important;
+}
+
+/* ---------- Intruding cards: spacing, overlap & mobile push ---------- */
+
+/* Base: reduce extreme intrusion and remove bottom gap by default */
+.intrude-wrapper {
+  /* less aggressive overlap so cards sit nicely over hero on large screens */
+  transform: translateY(-28%) !important;
+  z-index: 2;
+  margin-bottom: 0 !important;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* Grid gap: generous on all breakpoints */
+.intrude-card {
+  gap: 1.5rem !important; /* 24px between cards */
+  display: grid !important;
+  grid-template-columns: repeat(1, 1fr);
+  justify-items: center;
+}
+
+/* Card sizing — keep them compact on md+ */
+.intrude-card .card {
+  max-width: 32rem; /* 512px cap */
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 0.4rem;
+  border-radius: 8px; /* if you want sharp edges keep rounded-none in JSX; change as desired */
+}
+
+/* Desktop / Large screens — keep three cards side-by-side and give breathing room */
+@media (min-width: 1024px) {
+  .intrude-wrapper {
+    transform: translateY(-18%) !important;
+  }
+  .intrude-card {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2rem !important;
+  }
+  .intrude-card .card {
+    width: 100%;
+    max-width: 360px;
+    margin-bottom: 0;
+  }
+}
+
+/* Tablet -> small: reduce overlap a lot so the hero is not crowded */
+@media (max-width: 1023px) and (min-width: 769px) {
+  .intrude-wrapper {
+    transform: translateY(-12%) !important;
+  }
+  .intrude-card {
+    gap: 1.25rem !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .intrude-card .card {
+    max-width: 420px;
+  }
+}
+
+/* Mobile: push intrude down (appear below hero content), stack, keep gap */
+@media (max-width: 768px) {
+  .intrude-wrapper {
+    /* positive translateY moves it down (push away from hero) */
+    transform: translateY(6%) !important;
+    padding-bottom: 1.25rem;
+  }
+  .intrude-card {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+  .intrude-card .card {
+    width: 100% !important;
+    max-width: 520px;
+    padding: 0.85rem !important;
+    margin-inline: auto;
+    margin-bottom: 0.6rem;
+  }
+}
+
+/* Very small phones: tiny tweak to ensure it doesn't bump footer */
+@media (max-width: 420px) {
+  .intrude-wrapper {
+    transform: translateY(8%) !important;
+  }
+  .intrude-card {
+    gap: 0.8rem !important;
+  }
+}
+
+/* Remove extra space between intrude area and the about/stats block */
+#about {
+  padding-top: 0 !important; /* remove default top padding */
+  margin-top: 0 !important;
+  padding-bottom: 3rem; /* keep bottom spacing for breathing room */
+}
+.stats-wrap {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Safety: ensure hero overlay sits behind intrude cards */
+#heroSection .hero-overlay {
+  z-index: 0 !important;
+}
+
+/* Make sure intrude cards don't create horizontal overflow when shadows used */
+.intrude-card .card,
+.intrude-wrapper,
+#heroSection {
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow: visible;
 }

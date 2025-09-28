@@ -1,4 +1,3 @@
-// src/pages/Index.jsx
 import React, { useEffect, useRef, useState } from "react";
 import ClientScripts from "../components/ClientScripts";
 import "../styles/globals.css";
@@ -143,35 +142,23 @@ export default function Index() {
    * - updates active dot on scroll
    */
   useEffect(() => {
-    const trackEl = document.getElementById(
-      "testimTrack"
-    ) as HTMLElement | null;
-    const viewportEl = document.getElementById(
-      "testimViewport"
-    ) as HTMLElement | null;
-    const dotsContainer = document.getElementById(
-      "testimDots"
-    ) as HTMLElement | null;
-    const prevBtn = document.getElementById(
-      "testimPrev"
-    ) as HTMLButtonElement | null;
-    const nextBtn = document.getElementById(
-      "testimNext"
-    ) as HTMLButtonElement | null;
+    const trackEl = document.getElementById("testimTrack");
+    const viewportEl = document.getElementById("testimViewport");
+    const dotsContainer = document.getElementById("testimDots");
+    const prevBtn = document.getElementById("testimPrev");
+    const nextBtn = document.getElementById("testimNext");
 
     if (!trackEl || !viewportEl) return;
 
     // ensure track is scrollable and configured (non-destructive)
     trackEl.style.display = "flex";
     trackEl.style.overflowX = "auto";
-    (trackEl.style as any).scrollSnapType = "x mandatory";
+    trackEl.style.scrollSnapType = "x mandatory";
     trackEl.style.scrollBehavior = "smooth";
     trackEl.style.setProperty("-webkit-overflow-scrolling", "touch");
     trackEl.style.gap = "18px";
 
-    const cardNodes = Array.from(
-      trackEl.querySelectorAll<HTMLElement>(".testim-card")
-    );
+    const cardNodes = Array.from(trackEl.querySelectorAll(".testim-card"));
     if (cardNodes.length === 0) return;
 
     // Make sure cards use CSS widths (don't override). Still set snap align and prevent shrinking.
@@ -231,7 +218,7 @@ export default function Index() {
     trackEl.addEventListener("scroll", onScroll, { passive: true });
 
     // wheel handler (convert vertical to horizontal)
-    const onWheel = (e: WheelEvent) => {
+    const onWheel = (e) => {
       if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
         trackEl.scrollLeft += e.deltaY;
         e.preventDefault();
@@ -240,7 +227,7 @@ export default function Index() {
     trackEl.addEventListener("wheel", onWheel, { passive: false });
 
     // prev / next
-    const scrollToIndex = (i: number) => {
+    const scrollToIndex = (i) => {
       const idx = Math.max(0, Math.min(cardNodes.length - 1, i));
       const c = cardNodes[idx];
       if (!c) return;
@@ -578,17 +565,18 @@ export default function Index() {
                     </p>
 
                     <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row justify-center gap-3">
-                      {s.cta.map((c, idx) => (
-                        <a
-                          key={idx}
-                          href={c.href}
-                          className={`inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 ${
-                            c.ghost ? "cta-ghost" : "cta-btn"
-                          } w-full sm:w-auto`}
-                        >
-                          {c.text}
-                        </a>
-                      ))}
+                      {s.cta.map((c, idx) => {
+                        // make CTA styling explicit so it matches theme consistently
+                        const className = c.ghost
+                          ? "inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 bg-white/10 text-white backdrop-blur-sm border border-white/10 hover:bg-white/20 w-full sm:w-auto"
+                          : "inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 bg-primary text-white font-semibold hover:bg-primary-dark w-full sm:w-auto";
+
+                        return (
+                          <a key={idx} href={c.href} className={className}>
+                            {c.text}
+                          </a>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -627,11 +615,15 @@ export default function Index() {
           </div>
         </section>
 
-        {/* Intruding cards — replaced with grid so 3 remain side-by-side on md+ */}
-        <div className="relative intrude-wrapper px-4 -mt-6">
+        {/* Intruding cards — made responsive so they don't crash the hero on mobile.
+            - on mobile the block is pushed down (mt-6)
+            - on md+ we keep a subtle overlap (-mt-6)
+            - cards are given sharp edges (rounded-none) and reduced width on md+ so they don't feel too wide
+        */}
+        <div className="relative intrude-wrapper px-4 mt-6 md:-mt-6">
           <div className="max-w-6xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 intrude-card">
-              <div className="card glass p-6 card-hover flex flex-col justify-between bg-white w-full min-h-[220px]">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 intrude-card justify-items-center">
+              <div className="card glass p-6 card-hover flex flex-col justify-between bg-white w-full md:w-[320px] rounded-none min-h-[220px] shadow-sm">
                 <div>
                   <div className="flex items-start gap-3">
                     <div className="w-12 h-12 rounded-lg bg-white/90 flex items-center justify-center text-2xl">
@@ -652,7 +644,7 @@ export default function Index() {
                 </div>
               </div>
 
-              <div className="card glass bg-white p-6 card-hover flex flex-col justify-between w-full min-h-[220px]">
+              <div className="card glass bg-white p-6 card-hover flex flex-col justify-between w-full md:w-[320px] rounded-none min-h-[220px] shadow-sm">
                 <div>
                   <div className="flex items-start gap-3">
                     <div className="w-12 h-12 rounded-lg bg-white/90 flex items-center justify-center text-2xl">
@@ -673,7 +665,7 @@ export default function Index() {
                 </div>
               </div>
 
-              <div className="card glass bg-white p-6 card-hover flex flex-col justify-between w-full min-h-[220px]">
+              <div className="card glass bg-white p-6 card-hover flex flex-col justify-between w-full md:w-[320px] rounded-none min-h-[220px] shadow-sm">
                 <div>
                   <div className="flex items-start gap-3">
                     <div className="w-12 h-12 rounded-lg bg-white/90 flex items-center justify-center text-2xl">
@@ -733,7 +725,9 @@ export default function Index() {
           </div>
         </section>
 
-        {/* Testimonials (now scrollable & controlled) */}
+        {/* Testimonials (now scrollable & controlled)
+            IMPORTANT: cards were given responsive widths so that on md+ three cards are visible in the viewport without horizontal overflow.
+        */}
         <section className="testimonials-section">
           <div className="testimonials-wrap">
             <div className="testim-hero px-4">
@@ -763,7 +757,11 @@ export default function Index() {
                 id="testimTrack"
                 ref={testimTrackRef}
               >
-                <article className="testim-card" data-index="0">
+                {/* Each testimonial gets a responsive width: 100% on mobile, ~32% on md+ so 3 fit in viewport */}
+                <article
+                  className="testim-card w-full md:w-[32%] rounded-2xl bg-white p-4 shadow-sm"
+                  data-index="0"
+                >
                   <div className="testim-quote">
                     “They unlocked priority slots, handled every embassy
                     interaction, and saved our launch window — professional and
@@ -790,7 +788,10 @@ export default function Index() {
                   </div>
                 </article>
 
-                <article className="testim-card" data-index="1">
+                <article
+                  className="testim-card w-full md:w-[32%] rounded-2xl bg-white p-4 shadow-sm"
+                  data-index="1"
+                >
                   <div className="testim-quote">
                     “They rewrote our company narrative to match adjudicator
                     expectations. Result: embassy approved in record time.”
@@ -799,7 +800,7 @@ export default function Index() {
                   <div className="testim-meta">
                     <div className="testim-avatar">
                       <img
-                        src="https://images.unsplash.com/photo-1545996124-68aeef80d5d7?w=200&q=60&auto=format&fit=crop"
+                        src="https://media.istockphoto.com/id/1350800599/photo/happy-indian-business-man-leader-manager-standing-in-office-headshot-portrait.webp?a=1&b=1&s=612x612&w=0&k=20&c=cGWD5EMDF_k_juW9FltuGmfqM-4mdyLAg2UcGLbZAiY="
                         alt="R. Kapoor"
                         loading="lazy"
                       />
@@ -814,7 +815,10 @@ export default function Index() {
                   </div>
                 </article>
 
-                <article className="testim-card" data-index="2">
+                <article
+                  className="testim-card w-full md:w-[32%] rounded-2xl bg-white p-4 shadow-sm"
+                  data-index="2"
+                >
                   <div className="testim-quote">
                     “A complex family relocation with sensitive documents —
                     handled with speed, transparency and empathy.”
@@ -838,7 +842,10 @@ export default function Index() {
                   </div>
                 </article>
 
-                <article className="testim-card" data-index="3">
+                <article
+                  className="testim-card w-full md:w-[32%] rounded-2xl bg-white p-4 shadow-sm"
+                  data-index="3"
+                >
                   <div className="testim-quote">
                     “They turned a last-minute embassy block into a same-week
                     approval — our M&A go-live was saved. Honestly felt like
@@ -848,7 +855,7 @@ export default function Index() {
                   <div className="testim-meta">
                     <div className="testim-avatar">
                       <img
-                        src="https://images.unsplash.com/photo-1548142813-8af8f1a8f1d7?w=200&q=60&auto=format&fit=crop"
+                        src="https://media.istockphoto.com/id/1552851631/photo/busy-middle-aged-business-man-sitting-at-desk-working-on-laptop-writing.webp?a=1&b=1&s=612x612&w=0&k=20&c=w7hl9SQGAjBEp3KLlvZ71k78lnGI82hoyRfIhYVUqiI="
                         alt="C. Reyes"
                         loading="lazy"
                       />
@@ -904,123 +911,6 @@ export default function Index() {
                 </defs>
                 <rect x="0" y="0" width="100" height="10" fill="url(#g1)" />
               </svg>
-            </div>
-          </div>
-        </section>
-
-        {/* rest of the page unchanged (news, services, etc.) */}
-
-        <section className="py-16">
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-bold">Latest Stories &amp; News</h3>
-              <div className="text-sm text-gray-500">
-                Curated updates from our team
-              </div>
-            </div>
-
-            <div className="relative">
-              <div id="newsTrack" className="news-track">
-                <article className="news-item bg-white rounded-2xl shadow-md overflow-hidden">
-                  <img
-                    src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=1200&q=80&auto=format&fit=crop"
-                    alt="fast track"
-                    className="w-full h-44 object-cover"
-                    loading="lazy"
-                  />
-                  <div className="p-6">
-                    <span className="text-sm text-primary">June 15, 2023</span>
-                    <h4 className="text-lg font-semibold mt-2">
-                      How to Fast-Track Your Visa
-                    </h4>
-                    <p className="text-sm text-gray-600 mt-2">
-                      Practical tips our advisors use to speed up processing
-                      without losing compliance.
-                    </p>
-                    <a
-                      href="#"
-                      className="inline-block mt-4 text-primary font-semibold"
-                    >
-                      Read More
-                    </a>
-                  </div>
-                </article>
-
-                <article className="news-item bg-white rounded-2xl shadow-md overflow-hidden">
-                  <img
-                    src="https://panasiuk.com.pl/wp-content/uploads/2021/08/Relocation.jpg"
-                    alt="relocation"
-                    className="w-full h-44 object-cover"
-                    loading="lazy"
-                  />
-                  <div className="p-6">
-                    <span className="text-sm text-primary">June 8, 2023</span>
-                    <h4 className="text-lg font-semibold mt-2">
-                      Case Study: Corporate Relocation
-                    </h4>
-                    <p className="text-sm text-gray-600 mt-2">
-                      How we helped a tech company move 200 staff with minimal
-                      downtime.
-                    </p>
-                    <a
-                      href="#"
-                      className="inline-block mt-4 text-primary font-semibold"
-                    >
-                      Read More
-                    </a>
-                  </div>
-                </article>
-
-                <article className="news-item bg-white rounded-2xl shadow-md overflow-hidden">
-                  <img
-                    src="https://images.unsplash.com/photo-1556761175-4b46a572b786?w=1200&q=80&auto=format&fit=crop"
-                    alt="mistakes"
-                    className="w-full h-44 object-cover"
-                    loading="lazy"
-                  />
-                  <div className="p-6">
-                    <span className="text-sm text-primary">May 30, 2023</span>
-                    <h4 className="text-lg font-semibold mt-2">
-                      Top Mistakes to Avoid
-                    </h4>
-                    <p className="text-sm text-gray-600 mt-2">
-                      Common application pitfalls and how our clients avoid
-                      them.
-                    </p>
-                    <a
-                      href="#"
-                      className="inline-block mt-4 text-primary font-semibold"
-                    >
-                      Read More
-                    </a>
-                  </div>
-                </article>
-
-                <article className="news-item bg-white rounded-2xl shadow-md overflow-hidden">
-                  <img
-                    src="https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=1200&q=80&auto=format&fit=crop"
-                    alt="consulate"
-                    className="w-full h-44 object-cover"
-                    loading="lazy"
-                  />
-                  <div className="p-6">
-                    <span className="text-sm text-primary">May 22, 2023</span>
-                    <h4 className="text-lg font-semibold mt-2">
-                      Policy Update: Consulate Hours
-                    </h4>
-                    <p className="text-sm text-gray-600 mt-2">
-                      Important schedule changes that affect appointment
-                      planning.
-                    </p>
-                    <a
-                      href="#"
-                      className="inline-block mt-4 text-primary font-semibold"
-                    >
-                      Read More
-                    </a>
-                  </div>
-                </article>
-              </div>
             </div>
           </div>
         </section>
@@ -1198,8 +1088,6 @@ export default function Index() {
             </p>
           </div>
         </footer>
-
-        {/* ...remaining sections unchanged */}
       </main>
 
       {/* Floating contact FAB */}
